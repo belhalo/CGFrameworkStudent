@@ -332,7 +332,7 @@ bool Image::SaveTGA(const char* filename)
 // Draws lines (using DDA algorithm!)
 void Image::DrawLineDDA(int x0, int y0, int x1, int y1, const Color& c) {
 	//check if we have the initial condition to draw a rectangle
-	if (x0 < 0 || x0 > windowWidth || y0 < 0 || y0 > windowHeight || x1 < 0 || x1 > windowWidth || y1 < 0 || y1 > windowHeight) return;
+	if (x0 < 0 || x0 >= windowWidth || y0 < 0 || y0 >= windowHeight || x1 < 0 || x1 >= windowWidth || y1 < 0 || y1 >= windowHeight) return;
 
 	// with this we got the coordinates of the vector that goes from P0 -> P1
 	int dx = x1 - x0;
@@ -341,11 +341,11 @@ void Image::DrawLineDDA(int x0, int y0, int x1, int y1, const Color& c) {
 	// we choose with of the coordinates we will use to iterate
 	int d = std::max(abs(dx), abs(dy));
 
-	float xInc = dx / d;
-	float yInc = dy / d;
+	float xInc = (float)dx / (float)d;
+	float yInc = (float)dy / (float)d;
 
 	// then iterate from 0 to d to increment the x,y while paiting
-	for (int i = 0; i < d; i++) {
+	for (int i = 0; i <= d; i++) {
 		int x = floor(x0 + (xInc*i));
 		int y = floor(y0 + (yInc*i));
 
@@ -370,6 +370,7 @@ void Image::DrawRect(int x, int y, int w, int h, const Color& borderColor, int b
 		for (int j = 0; j < h - 1; j++) {
 			for (int i = 0; i < w - 1; i++) {
 				SetPixel(x + 1 + i, y + 1 + j, fillColor);
+
 			}
 		}
 	}
@@ -377,7 +378,41 @@ void Image::DrawRect(int x, int y, int w, int h, const Color& borderColor, int b
 
 // Draws a triangle
 void Image::DrawTriangle(const Vector2& p0, const Vector2& p1, const Vector2& p2, const Color& borderColor, bool isFilled, const Color& fillColor) {
+	DrawLineDDA((int)p0.x, (int)p0.y, (int)p1.x, (int)p1.y, borderColor);
+	DrawLineDDA((int)p1.x, (int)p1.y, (int)p2.x, (int)p2.y, borderColor);
+	DrawLineDDA((int)p2.x, (int)p2.y, (int)p0.x, (int)p0.y, borderColor);
 
+	if (!isFilled) return;
+
+	int maxX = (int)std::ceil(std::max({p0.x, p1.x, p2.x}));
+	int maxY = (int)std::ceil(std::max({p0.y, p1.y, p2.y}));
+	
+	int minX = (int)std::floor(std::min({p0.x, p1.x, p2.x}));
+	int minY = (int)std::floor(std::min({p0.y, p1.y, p2.y}));
+
+	int borderMin = -1;
+	int borderMax = -1;
+		  
+	if (isFilled) {
+		for (int j = minY + 1; j < maxY; j++) {
+			borderMin = -1;
+			borderMax = -1;
+			for (int i = minX; i < maxX; i++) {
+				const Color p = GetPixel(i, j);
+				if (p.r == borderColor.r && p.g == borderColor.g && p.b == borderColor.b) {
+					if (borderMin == -1) {
+						borderMin = i;
+					}
+					else {
+						borderMax = i;
+					}
+				}
+			}
+			for (int k = borderMin + 1; k < borderMax; k++) {
+				SetPixel(k, j, fillColor);
+			}
+		}
+	}
 }
 
 #ifndef IGNORE_LAMBDAS
