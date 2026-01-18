@@ -9,6 +9,9 @@
 #include "camera.h"
 #include "mesh.h"
 
+#define windowWidth 1280
+#define windowHeight 720
+
 Image::Image() {
 	width = 0; height = 0;
 	pixels = NULL;
@@ -324,6 +327,57 @@ bool Image::SaveTGA(const char* filename)
 	std::cout << "+++ File saved: " << fullPath.c_str() << std::endl;
 
 	return true;
+}
+
+// Draws lines (using DDA algorithm!)
+void Image::DrawLineDDA(int x0, int y0, int x1, int y1, const Color& c) {
+	//check if we have the initial condition to draw a rectangle
+	if (x0 < 0 || x0 > windowWidth || y0 < 0 || y0 > windowHeight || x1 < 0 || x1 > windowWidth || y1 < 0 || y1 > windowHeight) return;
+
+	// with this we got the coordinates of the vector that goes from P0 -> P1
+	int dx = x1 - x0;
+	int dy = y1 - y0;
+
+	// we choose with of the coordinates we will use to iterate
+	int d = std::max(abs(dx), abs(dy));
+
+	float xInc = dx / d;
+	float yInc = dy / d;
+
+	// then iterate from 0 to d to increment the x,y while paiting
+	for (int i = 0; i < d; i++) {
+		int x = floor(x0 + (xInc*i));
+		int y = floor(y0 + (yInc*i));
+
+		SetPixel(x, y, c);
+	}
+}
+
+// Draws and fills a rectangle
+void Image::DrawRect(int x, int y, int w, int h, const Color& borderColor, int borderWidth, bool isFilled, const Color& fillColor) {
+	//check if we have the initial condition to draw a rectangle
+	// 1) we have possible values?
+	if (x < 0 || x > windowWidth || y < 0 || y > windowHeight|| w <= 0 || w > windowWidth|| h <= 0 || h > windowHeight) return;
+	
+	// 2) draw the border of the triangle using the drawlineDDA function
+	DrawLineDDA(x, y, x + w, y, borderColor);
+	DrawLineDDA(x, y, x, y + h, borderColor);
+	DrawLineDDA(x + w, y, x + w, y + h, borderColor);
+	DrawLineDDA(x, y + h, x + w, y + h, borderColor);
+
+	// 3) fill up the rectangle 
+	if (isFilled) {
+		for (int j = 0; j < h - 1; j++) {
+			for (int i = 0; i < w - 1; i++) {
+				SetPixel(x + 1 + i, y + 1 + j, fillColor);
+			}
+		}
+	}
+}
+
+// Draws a triangle
+void Image::DrawTriangle(const Vector2& p0, const Vector2& p1, const Vector2& p2, const Color& borderColor, bool isFilled, const Color& fillColor) {
+
 }
 
 #ifndef IGNORE_LAMBDAS

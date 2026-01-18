@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.12)
+project(CGFrameworkStudent)
 
 function(COPY_FROM_TO_DIR src_dir dst_dir)
     file(GLOB src_files ${src_dir}/*)
