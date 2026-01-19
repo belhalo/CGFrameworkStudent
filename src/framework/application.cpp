@@ -29,15 +29,35 @@ void Application::Init(void)
 }
 
 // Render one frame
+
+	// ancho del rectangulo
+	// sin() and cos()
 void Application::Render(void)
 {
-	// ...
-	framebuffer.Fill(Color::GRAY);
-	//framebuffer.DrawLineDDA(100, 100, 300, 300, Color::CYAN);
-	//framebuffer.DrawRect(100, 100, 300, 200, Color::GREEN, 0, true, Color::BLUE);
+	// remainder that w = 1280, h = 720
+	// set up the window
+	framebuffer.Fill(Color::BLACK); 
+	framebuffer.DrawRect(0, 0, 1280, 30, Color::GRAY, 0, true, Color::GRAY);
 
+	Image clear; 
+	//clear.LoadPNG("|\images\\clear.png", true);
+	glRasterPos2f(-1.0f, -1.0f);
+	if (clear.LoadPNG("images\\clear.png", true) == false) {
+		std::cout << "Image not found!" << std::endl;
+	}
+
+	clear.Render();
+
+	/*const char* file = "C:\Users\belha\Documents\GitHub\CGFrameworkStudent\res\images";
+	framebuffer.LoadPNG(file, false);
+	*/
+	
+
+	//framebuffer.DrawLineDDA(100, 100, 300, 300, Color::CYAN);
 	//framebuffer.DrawLineDDA(230, 300, 230 + 100 * cos(time), 300 + 100 * sin(time), Color::CYAN);
-	framebuffer.DrawTriangle({ 100, 100 }, { 200, 200 }, { 300, 100 }, Color::RED, true, Color::WHITE);
+
+	//framebuffer.DrawRect(100, 100, 45, 1280, Color::GRAY, 0, true, Color::GRAY);
+	//framebuffer.DrawTriangle({ 100, 100 }, { 200, 200 }, { 300, 100 }, Color::BLUE, true, Color::RED);
 	framebuffer.Render();
 }
 

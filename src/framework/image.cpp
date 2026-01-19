@@ -415,6 +415,10 @@ void Image::DrawTriangle(const Vector2& p0, const Vector2& p1, const Vector2& p2
 	}
 }
 
+void Image::DrawImage(const Image& image, int x, int y) {
+
+}
+
 #ifndef IGNORE_LAMBDAS
 
 // You can apply and algorithm for two images and store the result in the first one
