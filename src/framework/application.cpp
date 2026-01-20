@@ -26,6 +26,102 @@ Application::~Application()
 void Application::Init(void)
 {
 	std::cout << "Initiating app..." << std::endl;
+
+	// init the window colours
+	framebuffer.Fill(Color::WHITE);
+	framebuffer.DrawRect(0, 0, 1280, 50, Color::GRAY, 0, true, Color::GRAY);
+
+	// init the toolbar
+	Image clear;
+	if (clear.LoadPNG("images\\clear.png", true) == false) {
+		std::cout << "Image not found!" << std::endl;
+	}
+	framebuffer.DrawImage(clear, 15, 10);
+
+	Image load;
+	if (load.LoadPNG("images\\load.png", true) == false) {
+		std::cout << "Image not found!" << std::endl;
+	}
+	framebuffer.DrawImage(load, 55, 10);
+
+	Image save;
+	if (save.LoadPNG("images\\save.png", true) == false) {
+		std::cout << "Image not found!" << std::endl;
+	}
+	framebuffer.DrawImage(save, 95, 10);
+
+	Image eraser;
+	if (eraser.LoadPNG("images\\eraser.png", true) == false) {
+		std::cout << "Image not found!" << std::endl;
+	}
+	framebuffer.DrawImage(eraser, 135, 10);
+
+	Image line;
+	if (line.LoadPNG("images\\line.png", true) == false) {
+		std::cout << "Image not found!" << std::endl;
+	}
+	framebuffer.DrawImage(line, 175, 10);
+
+	Image rectangle;
+	if (rectangle.LoadPNG("images\\rectangle.png", true) == false) {
+		std::cout << "Image not found!" << std::endl;
+	}
+	framebuffer.DrawImage(rectangle, 215, 10);
+
+	Image circle;
+	if (circle.LoadPNG("images\\circle.png", true) == false) {
+		std::cout << "Image not found!" << std::endl;
+	}
+	framebuffer.DrawImage(circle, 255, 10);
+
+	Image triangle;
+	if (triangle.LoadPNG("images\\triangle.png", true) == false) {
+		std::cout << "Image not found!" << std::endl;
+	}
+	framebuffer.DrawImage(triangle, 295, 10);
+
+	Image black;
+	if (black.LoadPNG("images\\black.png", true) == false) {
+		std::cout << "Image not found!" << std::endl;
+	}
+	framebuffer.DrawImage(black, 335, 10);
+
+	Image white;
+	if (white.LoadPNG("images\\white.png", true) == false) {
+		std::cout << "Image not found!" << std::endl;
+	}
+	framebuffer.DrawImage(white, 375, 10);
+
+	Image pink;
+	if (pink.LoadPNG("images\\pink.png", true) == false) {
+		std::cout << "Image not found!" << std::endl;
+	}
+	framebuffer.DrawImage(pink, 415, 10);
+
+	Image yellow;
+	if (yellow.LoadPNG("images\\yellow.png", true) == false) {
+		std::cout << "Image not found!" << std::endl;
+	}
+	framebuffer.DrawImage(yellow, 455, 10);
+
+	Image red;
+	if (red.LoadPNG("images\\red.png", true) == false) {
+		std::cout << "Image not found!" << std::endl;
+	}
+	framebuffer.DrawImage(red, 495, 10);
+
+	Image blue;
+	if (blue.LoadPNG("images\\blue.png", true) == false) {
+		std::cout << "Image not found!" << std::endl;
+	}
+	framebuffer.DrawImage(blue, 535, 10);
+
+	Image cyan;
+	if (cyan.LoadPNG("images\\cyan.png", true) == false) {
+		std::cout << "Image not found!" << std::endl;
+	}
+	framebuffer.DrawImage(cyan, 575, 10);
+
 }
 
 // Render one frame
@@ -36,22 +132,9 @@ void Application::Render(void)
 {
 	// remainder that w = 1280, h = 720
 	// set up the window
-	framebuffer.Fill(Color::BLACK); 
-	framebuffer.DrawRect(0, 0, 1280, 30, Color::GRAY, 0, true, Color::GRAY);
-
-	Image clear; 
-	//clear.LoadPNG("|\images\\clear.png", true);
-	glRasterPos2f(-1.0f, -1.0f);
-	if (clear.LoadPNG("images\\clear.png", true) == false) {
-		std::cout << "Image not found!" << std::endl;
-	}
-
-	clear.Render();
-
-	/*const char* file = "C:\Users\belha\Documents\GitHub\CGFrameworkStudent\res\images";
-	framebuffer.LoadPNG(file, false);
-	*/
 	
+
+
 
 	//framebuffer.DrawLineDDA(100, 100, 300, 300, Color::CYAN);
 	//framebuffer.DrawLineDDA(230, 300, 230 + 100 * cos(time), 300 + 100 * sin(time), Color::CYAN);
