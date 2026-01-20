@@ -58,7 +58,7 @@ public:
 	static const Color BLUE;
 	static const Color CYAN;
 	static const Color YELLOW;
-	static const Color PURPLE;
+	static const Color PURPLE;  // note that image saved as pink
 };
 
 inline Color operator * (const Color& c, float v) { return Color((unsigned char)(c.r*v), (unsigned char)(c.g*v), (unsigned char)(c.b*v)); }
