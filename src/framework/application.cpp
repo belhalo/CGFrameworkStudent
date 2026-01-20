@@ -121,6 +121,60 @@ void Application::Init(void)
 		std::cout << "Image not found!" << std::endl;
 	}
 	framebuffer.DrawImage(cyan, 575, 10);
+    
+    buttons.clear();
+
+        auto loadIcon = [&](const char* path) {
+            Image img;
+            if (!img.LoadPNG(path, true))
+                std::cout << "Image not found: " << path << std::endl;
+            return img;
+        };
+
+        // NOTE: use forward slashes (works on Mac + Windows)
+        Image clearI = loadIcon("images/clear.png");
+        Image loadI  = loadIcon("images/load.png");
+        Image saveI  = loadIcon("images/save.png");
+        Image eraserI= loadIcon("images/eraser.png");
+        Image lineI  = loadIcon("images/line.png");
+        Image rectI  = loadIcon("images/rectangle.png");
+        Image triI   = loadIcon("images/triangle.png");
+        Image cirI   = loadIcon("images/circle.png");
+        Image blackI = loadIcon("images/black.png");
+        Image whiteI = loadIcon("images/white.png");
+        Image pinkI  = loadIcon("images/pink.png");
+        Image yellowI= loadIcon("images/yellow.png");
+        Image redI   = loadIcon("images/red.png");
+        Image blueI  = loadIcon("images/blue.png");
+        Image cyanI  = loadIcon("images/cyan.png");
+        Image greenI = loadIcon("images/green.png");
+
+        int y = 10;        // toolbar margin from bottom
+        int x = 15;        // starting x
+        int step = 40;     // spacing
+
+        buttons.emplace_back(ButtonType::Clear,     Vector2(x, y), clearI);  x += step;
+        buttons.emplace_back(ButtonType::Load,      Vector2(x, y), loadI);   x += step;
+        buttons.emplace_back(ButtonType::Save,      Vector2(x, y), saveI);   x += step;
+        buttons.emplace_back(ButtonType::Eraser,    Vector2(x, y), eraserI); x += step;
+        buttons.emplace_back(ButtonType::Line,      Vector2(x, y), lineI);   x += step;
+        buttons.emplace_back(ButtonType::Rectangle, Vector2(x, y), rectI);   x += step;
+        buttons.emplace_back(ButtonType::Triangle,  Vector2(x, y), triI);    x += step;
+        buttons.emplace_back(ButtonType::Circle, Vector2(x, y), cirI);       x += step;
+
+        // colors
+        buttons.emplace_back(ButtonType::ColorBlack, Vector2(x, y), blackI);  x += step;
+        buttons.emplace_back(ButtonType::ColorWhite, Vector2(x, y), whiteI);  x += step;
+        buttons.emplace_back(ButtonType::ColorPink,  Vector2(x, y), pinkI);   x += step;
+        buttons.emplace_back(ButtonType::ColorYellow,Vector2(x, y), yellowI); x += step;
+        buttons.emplace_back(ButtonType::ColorRed,   Vector2(x, y), redI);    x += step;
+        buttons.emplace_back(ButtonType::ColorBlue,  Vector2(x, y), blueI);   x += step;
+        buttons.emplace_back(ButtonType::ColorCyan,  Vector2(x, y), cyanI);   x += step;
+        buttons.emplace_back(ButtonType::ColorGreen, Vector2(x, y), greenI);    x += step;
+
+        // draw toolbar icons once 
+        for (const auto& b : buttons)
+            framebuffer.DrawImage(b.icon, (int)b.pos.x, (int)b.pos.y);
 }
 
 // Render one frame
@@ -177,11 +231,24 @@ void Application::OnKeyPressed( SDL_KeyboardEvent event )
 void Application::OnMouseButtonDown( SDL_MouseButtonEvent event )
 {
     if (event.button != SDL_BUTTON_LEFT) return;
-    
+
+    Vector2 m = MouseToCanvas(event.x, event.y); // bottom-left coords
+
+    // if click is inside toolbar region (bottom strip), treat as UI click
+    if (m.y < 50)
+    {
+        for (const auto& b : buttons)
+        {
+            if (b.IsMouseInside(m))
+            {
+                HandleButton(b.type);
+                return;
+            }
+        }
+        return;
+    }
     mouse_position = MouseToCanvas(event.x, event.y);   // store coords of mouse position
     
-    // toolbar area (bottom)
-    if (event.y > window_height - 50) return;   // NEED TO ADD HANDLING OF BUTTONS HERE !!
     
     // lines and rectangles build
     if (currentTool == TOOL_LINE || currentTool == TOOL_RECT) {
@@ -201,6 +268,47 @@ void Application::OnMouseButtonDown( SDL_MouseButtonEvent event )
         }
     }
 }
+
+// button handler
+void Application::HandleButton(ButtonType t)
+{
+    switch (t)
+    {
+        case ButtonType::Line:      currentTool = TOOL_LINE; break;
+        case ButtonType::Rectangle: currentTool = TOOL_RECT; break;
+        case ButtonType::Triangle:  currentTool = TOOL_TRIANGLE; triClicks = 0; break;
+        case ButtonType::Eraser:    currentTool = TOOL_ERASER; break;
+        case ButtonType::Circle:    currentTool = TOOL_CIRCLE; break;
+
+        case ButtonType::ColorBlack: borderColor = Color::BLACK; fillColor = Color::BLACK; break;
+        case ButtonType::ColorWhite: borderColor = Color::WHITE; fillColor = Color::WHITE; break;
+        case ButtonType::ColorRed:   borderColor = Color::RED;   fillColor = Color::RED;   break;
+        case ButtonType::ColorBlue:  borderColor = Color::BLUE;  fillColor = Color::BLUE;  break;
+        case ButtonType::ColorCyan:  borderColor = Color::CYAN;  fillColor = Color::CYAN;  break;
+        case ButtonType::ColorPink:  borderColor = Color::PURPLE;fillColor = Color::PURPLE;break;   // var is purple but image is named pink
+        case ButtonType::ColorYellow:borderColor = Color::YELLOW; fillColor = Color::YELLOW; break;
+        case ButtonType::ColorGreen: borderColor = Color::GREEN;  fillColor = Color::GREEN;  break;
+        // although there is a GRAY var, there is no gray image so we skipped it
+            
+            
+        case ButtonType::Clear:
+            framebuffer.Fill(Color::WHITE);
+            framebuffer.DrawRect(0, 0, 1280, 50, Color::GRAY, 0, true, Color::GRAY);
+            for (const auto& b : buttons) b.Render(framebuffer);
+            break;
+
+        case ButtonType::Load:
+            // TODO: load image from disk (later point)
+            break;
+
+        case ButtonType::Save:
+            // TODO: save to disk
+            break;
+
+        default: break;
+    }
+}
+
 
 void Application::OnMouseButtonUp( SDL_MouseButtonEvent event )
 {

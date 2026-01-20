@@ -7,11 +7,14 @@
 #include "main/includes.h"
 #include "framework.h"
 #include "image.h"
+#include "button.h"
 
 class Application
 {
 public:
-
+    
+    std::vector<Button> buttons;
+    
 	// Window
 
 	SDL_Window* window = nullptr;
@@ -33,8 +36,10 @@ public:
 	void OnWheel(SDL_MouseWheelEvent event);
 	void OnFileChanged(const char* filename);
     
+    void HandleButton(ButtonType t);
+    
     // Mouse position/buttons handling
-    enum Tool { TOOL_LINE, TOOL_RECT, TOOL_TRIANGLE };
+    enum Tool { TOOL_LINE, TOOL_RECT, TOOL_TRIANGLE, TOOL_ERASER, TOOL_CIRCLE};
     Tool currentTool = TOOL_LINE;
 
     Color borderColor = Color::BLACK;
