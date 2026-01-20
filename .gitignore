@@ -1,3 +1,19 @@
 build/*
+build-xcode/*
+
+
+# Xcode generated files
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+
+# macOS junk
+.DS_Store
+
+# CMake generated
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+
 .vs/*
 .vscode/*
