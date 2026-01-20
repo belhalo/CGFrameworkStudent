@@ -88,7 +88,7 @@ public:
 	void DrawTriangle(const Vector2& p0, const Vector2& p1, const Vector2& p2, const Color& borderColor, bool isFilled, const Color& fillColor);
 
 	// Draws the selected image 
-	void Image::DrawImage(const Image& image, int x, int y);
+	void DrawImage(const Image& image, int x, int y);
 
 	// Used to easy code
 	#ifndef IGNORE_LAMBDAS

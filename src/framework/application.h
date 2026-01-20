@@ -32,6 +32,23 @@ public:
 	void OnMouseMove(SDL_MouseButtonEvent event);
 	void OnWheel(SDL_MouseWheelEvent event);
 	void OnFileChanged(const char* filename);
+    
+    // Mouse position/buttons handling
+    enum Tool { TOOL_LINE, TOOL_RECT, TOOL_TRIANGLE };
+    Tool currentTool = TOOL_LINE;
+
+    Color borderColor = Color::BLACK;
+    Color fillColor   = Color::BLACK;
+    bool  fillShapes  = true;
+
+    bool isDragging = false;
+    Vector2 startPos;
+    Vector2 currentPos;
+
+    int triClicks = 0;
+    Vector2 t0, t1;
+    
+    Vector2 MouseToCanvas(int mx, int my) const;
 
 	// CPU Global framebuffer
 	Image framebuffer;
