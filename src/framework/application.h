@@ -39,8 +39,8 @@ public:
     void HandleButton(ButtonType t);
     
     // Mouse position/buttons handling
-    enum Tool { TOOL_LINE, TOOL_RECT, TOOL_TRIANGLE, TOOL_ERASER, TOOL_CIRCLE};
-    Tool currentTool = TOOL_LINE;
+    enum Tool { TOOL_LINE, TOOL_RECT, TOOL_TRIANGLE, TOOL_ERASER, TOOL_CIRCLE, TOOL_PENCIL};
+    Tool currentTool = TOOL_PENCIL;
 
     Color borderColor = Color::BLACK;
     Color fillColor   = Color::BLACK;
@@ -54,6 +54,10 @@ public:
     Vector2 t0, t1;
     
     Vector2 MouseToCanvas(int mx, int my) const;
+    
+    // pencil tool
+    bool pencilDown = false;
+    Vector2 lastPencilPos;
 
 	// CPU Global framebuffer
 	Image framebuffer;
