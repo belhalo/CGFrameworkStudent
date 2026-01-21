@@ -248,7 +248,13 @@ void Application::OnMouseButtonDown( SDL_MouseButtonEvent event )
         return;
     }
     mouse_position = MouseToCanvas(event.x, event.y);   // store coords of mouse position
-    
+
+    if (currentTool == TOOL_PENCIL) {
+        pencilDown = true;
+        lastPencilPos = mouse_position;
+        return;
+    }
+
     
     // lines and rectangles build
     if (currentTool == TOOL_LINE || currentTool == TOOL_RECT) {
@@ -279,6 +285,7 @@ void Application::HandleButton(ButtonType t)
         case ButtonType::Triangle:  currentTool = TOOL_TRIANGLE; triClicks = 0; break;
         case ButtonType::Eraser:    currentTool = TOOL_ERASER; break;
         case ButtonType::Circle:    currentTool = TOOL_CIRCLE; break;
+        case ButtonType::Pencil:    currentTool = TOOL_PENCIL; triClicks = 0; isDragging = false; break;
 
         case ButtonType::ColorBlack: borderColor = Color::BLACK; fillColor = Color::BLACK; break;
         case ButtonType::ColorWhite: borderColor = Color::WHITE; fillColor = Color::WHITE; break;
@@ -298,11 +305,11 @@ void Application::HandleButton(ButtonType t)
             break;
 
         case ButtonType::Load:
-            // TODO: load image from disk (later point)
+            // load image from disk
             break;
 
         case ButtonType::Save:
-            // TODO: save to disk
+            // save to disk
             break;
 
         default: break;
@@ -316,6 +323,11 @@ void Application::OnMouseButtonUp( SDL_MouseButtonEvent event )
     
     mouse_position = MouseToCanvas(event.x, event.y);
     
+    if (currentTool == TOOL_PENCIL) {
+        pencilDown = false;
+        return;
+    }
+
     if (!isDragging) return;
     isDragging = false;
     if (event.y < 50) return;
@@ -336,16 +348,33 @@ void Application::OnMouseMove(SDL_MouseButtonEvent event)
     mouse_delta = Vector2((float)event.x, (float)(-event.y));   // flip y sign
     mouse_position = MouseToCanvas(event.x, event.y);
     
-    if (!isDragging) return;
     if (event.y < 50) return;
     
-    currentPos = mouse_position;
+    // don't draw on toolbar
+    if (mouse_position.y < 50) return;
+    // Pencil: draw small segments following the mouse
+    if (currentTool == TOOL_PENCIL && pencilDown)
+    {
+        Vector2 cur = mouse_position;
+
+        framebuffer.DrawLineDDA(
+            (int)lastPencilPos.x, (int)lastPencilPos.y,
+            (int)cur.x,          (int)cur.y,
+            borderColor
+        );
+
+        lastPencilPos = cur;
+        return;
+    }
     
+    if (!isDragging) return;
+    currentPos = mouse_position;
+
     // line
     if (currentTool == TOOL_LINE) {
         framebuffer.DrawLineDDA((int)startPos.x, (int)startPos.y, (int)currentPos.x, (int)currentPos.y, borderColor);    // draw line
     } else if (currentTool == TOOL_RECT) {
-        int x, y, w, h; // origin and size
+        int x, y, w, h; // origin and size      // cant figure out a way to omit toolbar for lines/rect
         DragToRect(startPos, currentPos, x, y, w, h);   // turn into coords and sizes values
         framebuffer.DrawRect(x, y, w, h, borderColor, 1, fillShapes, fillColor);    // draw rectangle
     }

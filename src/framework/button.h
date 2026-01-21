@@ -13,6 +13,7 @@ enum class ButtonType
     Rectangle,
     Triangle,
     Circle,
+    Pencil,
 
     ColorBlack,
     ColorWhite,
