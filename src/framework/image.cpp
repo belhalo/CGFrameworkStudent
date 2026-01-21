@@ -359,18 +359,19 @@ void Image::DrawRect(int x, int y, int w, int h, const Color& borderColor, int b
 	// 1) we have possible values?
 	if (x < 0 || x > windowWidth || y < 0 || y > windowHeight|| w <= 0 || w > windowWidth|| h <= 0 || h > windowHeight) return;
 	
-	// 2) draw the border of the triangle using the drawlineDDA function
-	DrawLineDDA(x, y, x + w, y, borderColor);
-	DrawLineDDA(x, y, x, y + h, borderColor);
-	DrawLineDDA(x + w, y, x + w, y + h, borderColor);
-	DrawLineDDA(x, y + h, x + w, y + h, borderColor);
-
-	// 3) fill up the rectangle 
+	// 2) draw the border of the rectangle using the drawlineDDA function
+    for (int i = 0; i < borderWidth; i++) {
+        DrawLineDDA(x-i, y-i, x+w+i, y-i, borderColor);     // left to right, top
+        DrawLineDDA(x-i, y-i, x-i, y+h+i, borderColor);     // up to down, left
+        DrawLineDDA(x+w+i, y-i, x+w+i, y+h+i, borderColor); // up to down, right
+        DrawLineDDA(x-i, y+h+i, x+w+i, y+h+i, borderColor); // left to right, bottom
+    }
+    
+	// 3) fill up the rectangle
 	if (isFilled) {
 		for (int j = 0; j < h - 1; j++) {
 			for (int i = 0; i < w - 1; i++) {
 				SetPixel(x + 1 + i, y + 1 + j, fillColor);
-
 			}
 		}
 	}
