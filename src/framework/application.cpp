@@ -136,6 +136,7 @@ void Application::Init(void)
         Image loadI  = loadIcon("images/load.png");
         Image saveI  = loadIcon("images/save.png");
         Image eraserI= loadIcon("images/eraser.png");
+        Image penI   = loadIcon("images/pencil.png");
         Image lineI  = loadIcon("images/line.png");
         Image rectI  = loadIcon("images/rectangle.png");
         Image triI   = loadIcon("images/triangle.png");
@@ -157,10 +158,12 @@ void Application::Init(void)
         buttons.emplace_back(ButtonType::Load,      Vector2(x, y), loadI);   x += step;
         buttons.emplace_back(ButtonType::Save,      Vector2(x, y), saveI);   x += step;
         buttons.emplace_back(ButtonType::Eraser,    Vector2(x, y), eraserI); x += step;
+        buttons.emplace_back(ButtonType::Pencil,    Vector2(x, y), penI);    x += step;
         buttons.emplace_back(ButtonType::Line,      Vector2(x, y), lineI);   x += step;
         buttons.emplace_back(ButtonType::Rectangle, Vector2(x, y), rectI);   x += step;
         buttons.emplace_back(ButtonType::Triangle,  Vector2(x, y), triI);    x += step;
-        buttons.emplace_back(ButtonType::Circle, Vector2(x, y), cirI);       x += step;
+        buttons.emplace_back(ButtonType::Circle,    Vector2(x, y), cirI);    x += step;
+
 
         // colors
         buttons.emplace_back(ButtonType::ColorBlack, Vector2(x, y), blackI);  x += step;
@@ -170,7 +173,7 @@ void Application::Init(void)
         buttons.emplace_back(ButtonType::ColorRed,   Vector2(x, y), redI);    x += step;
         buttons.emplace_back(ButtonType::ColorBlue,  Vector2(x, y), blueI);   x += step;
         buttons.emplace_back(ButtonType::ColorCyan,  Vector2(x, y), cyanI);   x += step;
-        buttons.emplace_back(ButtonType::ColorGreen, Vector2(x, y), greenI);    x += step;
+        buttons.emplace_back(ButtonType::ColorGreen, Vector2(x, y), greenI);  x += step;
 
         // draw toolbar icons once 
         for (const auto& b : buttons)
@@ -305,8 +308,26 @@ void Application::HandleButton(ButtonType t)
             break;
 
         case ButtonType::Load:
-            // load image from disk
+        {
+            Image img;
+            if (!img.LoadPNG("images/load.png", true)) {
+                std::cout << "Load failed: images/load.png\n";
+                break;
+            }
+
+            // clear canvas
+            framebuffer.Fill(Color::WHITE);
+
+            // draw loaded image above toolbar.
+            framebuffer.DrawImage(img, 0, 50);
+
+            // redraw toolbar background + buttons
+            framebuffer.DrawRect(0, 0, window_width, 50, Color::GRAY, 0, true, Color::GRAY);
+            for (const auto& b : buttons) b.Render(framebuffer);
+
             break;
+        }
+
 
         case ButtonType::Save:
             // save to disk
@@ -347,8 +368,6 @@ void Application::OnMouseMove(SDL_MouseButtonEvent event)
 {
     mouse_delta = Vector2((float)event.x, (float)(-event.y));   // flip y sign
     mouse_position = MouseToCanvas(event.x, event.y);
-    
-    if (event.y < 50) return;
     
     // don't draw on toolbar
     if (mouse_position.y < 50) return;
