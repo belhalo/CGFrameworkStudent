@@ -58,6 +58,11 @@ public:
     // pencil tool
     bool pencilDown = false;
     Vector2 lastPencilPos;
+    
+    // eraser tool
+    bool isStrokeDown = false;
+    Vector2 lastStrokePos;
+    int eraserRadius = 8; 
 
 	// CPU Global framebuffer
 	Image framebuffer;
