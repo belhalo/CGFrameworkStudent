@@ -87,7 +87,10 @@ public:
 	// Draws a triangle
 	void DrawTriangle(const Vector2& p0, const Vector2& p1, const Vector2& p2, const Color& borderColor, bool isFilled, const Color& fillColor);
 
-	// Draws the selected image 
+    // Draws a circle using Midpoint Circle algorithm
+    void DrawCircle(int cx, int cy, int radius, const Color& borderColor, int borderWidth, bool isFilled, const Color& fillColor);
+
+	// Draws the selected image
 	void DrawImage(const Image& image, int x, int y);
 
 	// Used to easy code

@@ -416,6 +416,136 @@ void Image::DrawTriangle(const Vector2& p0, const Vector2& p1, const Vector2& p2
 	}
 }
 
+// set a pixel using int coordinates
+static inline void SetPixelSafeInt(Image* img, int x, int y, const Color& c)
+{
+    // if outside the image, do nothing
+    if (x < 0 || y < 0) return;
+    if (x >= (int)img->width || y >= (int)img->height) return;
+
+    // safe to cast now
+    img->SetPixel((unsigned int)x, (unsigned int)y, c);
+}
+
+// plot the 8 symmetric points of a circle.
+// given a center (cx,cy) and an offset point (x,y),
+// the circle has 8 symmetric points in the octants
+static inline void Plot8(Image* img, int cx, int cy, int x, int y, const Color& c)
+{
+    // points at (±x, ±y)
+    SetPixelSafeInt(img, cx + x, cy + y, c);
+    SetPixelSafeInt(img, cx - x, cy + y, c);
+    SetPixelSafeInt(img, cx + x, cy - y, c);
+    SetPixelSafeInt(img, cx - x, cy - y, c);
+
+    // points at (±y, ±x)
+    SetPixelSafeInt(img, cx + y, cy + x, c);
+    SetPixelSafeInt(img, cx - y, cy + x, c);
+    SetPixelSafeInt(img, cx + y, cy - x, c);
+    SetPixelSafeInt(img, cx - y, cy - x, c);
+}
+
+// fill a horizontal span from x0 to x1 at a given y (used for circle)
+static inline void DrawSpan(Image* img, int x0, int x1, int y, const Color& c)
+{
+    // if the row is outside the image, nothing to draw
+    if (y < 0 || y >= (int)img->height) return;
+
+    // ensure x0 <= x1
+    if (x0 > x1) std::swap(x0, x1);
+
+    // image bounds
+    x0 = std::max(x0, 0);
+    x1 = std::min(x1, (int)img->width - 1);
+
+    // draw the line (x0..x1) at row y
+    for (int x = x0; x <= x1; ++x)
+        img->SetPixel((unsigned int)x, (unsigned int)y, c);
+}
+
+// Midpoint Circle Algorithm implementation.
+// uses an integer decision variable "d"
+// walks from the top of the circle to 45 degrees
+// uses symmetry to draw all octants
+void Image::DrawCircle(int cx, int cy, int radius, const Color& borderColor, int borderWidth, bool isFilled, const Color& fillColor)
+{
+    // no circle if radius is invalid
+    if (radius <= 0) return;
+
+    // ensure outline thickness is at least 1 pixel
+    borderWidth = std::max(borderWidth, 1);
+
+    // fill by drawing horizontal spans between symmetric points.
+    if (isFilled)
+    {
+        // start at (x = r, y = 0) relative to center
+        int x = radius;
+        int y = 0;
+
+        // decision variable (midpoint test)
+        int d = 1 - radius;
+
+        // continue until x < y (we passed the 45° line)
+        while (x >= y)
+        {
+            // for each (x,y) we can fill 4 spans:
+            // y rows use ±x, and x rows use ±y due to symmetry
+            DrawSpan(this, cx - x, cx + x, cy + y, fillColor);
+            DrawSpan(this, cx - x, cx + x, cy - y, fillColor);
+            DrawSpan(this, cx - y, cx + y, cy + x, fillColor);
+            DrawSpan(this, cx - y, cx + y, cy - x, fillColor);
+
+            // move to next y
+            y++;
+
+            // update decision variable
+            // if d < 0, the midpoint is inside the circle -> keep x
+            // else midpoint is outside -> decrement x
+            if (d < 0)
+            {
+                d += 2 * y + 1;
+            }
+            else
+            {
+                x--;
+                d += 2 * (y - x) + 1;
+            }
+        }
+    }
+
+    // draw outline (borderWidth)
+    // draw concentric circles with r, r-1, r-2... (similar to og triangle idea)
+    for (int t = 0; t < borderWidth; ++t)
+    {
+        int r = radius - t;
+        if (r <= 0) break;
+
+        int x = r;
+        int y = 0;
+        int d = 1 - r;
+
+        while (x >= y)
+        {
+            // plot all 8 symmetric points
+            Plot8(this, cx, cy, x, y, borderColor);
+
+            // increment y
+            y++;
+
+            // update decision variable
+            if (d < 0)
+            {
+                d += 2 * y + 1;
+            }
+            else
+            {
+                x--;
+                d += 2 * (y - x) + 1;
+            }
+        }
+    }
+}
+
 void Image::DrawImage(const Image& image, int x, int y) {
 	for (int j = 0; j < image.height; j++) {
 		for (int i = 0; i < image.width; i++) {

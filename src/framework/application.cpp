@@ -257,10 +257,27 @@ void Application::OnMouseButtonDown( SDL_MouseButtonEvent event )
         lastPencilPos = mouse_position;
         return;
     }
-
     
-    // lines and rectangles build
-    if (currentTool == TOOL_LINE || currentTool == TOOL_RECT) {
+    if (currentTool == TOOL_ERASER)
+    {
+        isStrokeDown = true;
+        lastStrokePos = mouse_position;
+
+        // apply one dab so click-without-moving erases/draws
+        for (int oy = -eraserRadius; oy <= eraserRadius; ++oy)
+        for (int ox = -eraserRadius; ox <= eraserRadius; ++ox)
+        {
+            int x = (int)mouse_position.x + ox;
+            int y = (int)mouse_position.y + oy;
+            if (x >= 0 && x < (int)framebuffer.width && y >= 50 && y < (int)framebuffer.height) {
+                framebuffer.SetPixel((unsigned)x, (unsigned)y, Color::WHITE);
+            }
+        }
+        return;
+    }
+    
+    // lines, rectangles and circles build
+    if (currentTool == TOOL_LINE || currentTool == TOOL_RECT || currentTool == TOOL_CIRCLE) {
         isDragging = true;  // lines and rects work based on drag
         startPos = currentPos = mouse_position;     // set origin point
     } else if (currentTool == TOOL_TRIANGLE){   // triangle build
@@ -371,6 +388,15 @@ void Application::OnMouseButtonUp( SDL_MouseButtonEvent event )
         pencilDown = false;
         return;
     }
+    
+    if (currentTool == TOOL_ERASER) {
+        isStrokeDown = false;
+        return;
+    }
+    
+    if (currentTool == TOOL_CIRCLE) {
+        isDragging = false;
+    }
 
     if (!isDragging) return;
     isDragging = false;
@@ -409,16 +435,46 @@ void Application::OnMouseMove(SDL_MouseButtonEvent event)
         return;
     }
     
+    if (currentTool == TOOL_ERASER && isStrokeDown) {
+        Vector2 cur = mouse_position;
+        // erase along the path with a line
+        framebuffer.DrawLineDDA((int)lastStrokePos.x, (int)lastStrokePos.y,
+                                (int)cur.x,          (int)cur.y,
+                                Color::WHITE);
+        
+        // make it thick by stamping a square around the cursor     <--- COULD MAKE IT A CIRCLE
+        for (int oy = -eraserRadius; oy <= eraserRadius; ++oy)
+            for (int ox = -eraserRadius; ox <= eraserRadius; ++ox)
+            {
+                int x = (int)cur.x + ox;
+                int y = (int)cur.y + oy;
+                if (x >= 0 && x < (int)framebuffer.width && y >= 50 && y < (int)framebuffer.height) {
+                    framebuffer.SetPixel((unsigned)x, (unsigned)y, Color::WHITE);
+                }
+            }
+        lastStrokePos = cur;
+        return;
+    }
+    
     if (!isDragging) return;
     currentPos = mouse_position;
 
-    // line
     if (currentTool == TOOL_LINE) {
-        framebuffer.DrawLineDDA((int)startPos.x, (int)startPos.y, (int)currentPos.x, (int)currentPos.y, borderColor);    // draw line
+        framebuffer.DrawLineDDA((int)startPos.x, (int)startPos.y, (int)currentPos.x, (int)currentPos.y, borderColor);  // draw line
     } else if (currentTool == TOOL_RECT) {
         int x, y, w, h; // origin and size      // cant figure out a way to omit toolbar for lines/rect
         DragToRect(startPos, currentPos, x, y, w, h);   // turn into coords and sizes values
         framebuffer.DrawRect(x, y, w, h, borderColor, 1, fillShapes, fillColor);    // draw rectangle
+    } else if (currentTool == TOOL_CIRCLE) {
+        // compute dx, dy from center to mouse
+        float dx = currentPos.x - startPos.x;
+        float dy = currentPos.y - startPos.y;
+
+        // radius = euclidean distance
+        int radius = (int)std::sqrt(dx * dx + dy * dy);
+
+        // draw the circle
+        framebuffer.DrawCircle((int)startPos.x, (int)startPos.y, radius, borderColor, 1, fillShapes, fillColor);
     }
 }
 
