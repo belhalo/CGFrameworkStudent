@@ -330,8 +330,31 @@ void Application::HandleButton(ButtonType t)
 
 
         case ButtonType::Save:
-            // save to disk
+        {
+            const unsigned int TOOLBAR_H = 50;
+
+            // if window is too small
+            if (framebuffer.height <= TOOLBAR_H) {
+                std::cout << "Save failed: framebuffer too small\n";
+                break;
+            }
+
+            Image canvas(framebuffer.width, framebuffer.height - TOOLBAR_H);
+
+            // copy pixels from framebuffer
+            for (unsigned int y = 0; y < canvas.height; ++y)
+            {
+                for (unsigned int x = 0; x < canvas.width; ++x)
+                {
+                    canvas.SetPixel(x, y, framebuffer.GetPixel(x, y + TOOLBAR_H));
+                }
+            }
+
+            // save to res path
+            canvas.SaveTGA("output.tga");
             break;
+        }
+
 
         default: break;
     }
