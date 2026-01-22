@@ -46,6 +46,10 @@ public:
     enum Tool { TOOL_LINE, TOOL_RECT, TOOL_TRIANGLE, TOOL_ERASER, TOOL_CIRCLE, TOOL_PENCIL};
     Tool currentTool = TOOL_PENCIL;
 
+    int borderWidth = 1;
+    const int minBorderWidth = 1;
+    const int maxBorderWidth = 20;
+    
     Color borderColor = Color::BLACK;
     Color fillColor   = Color::BLACK;
     bool  fillShapes  = true;
@@ -58,6 +62,10 @@ public:
     Vector2 t0, t1;
     
     Vector2 MouseToCanvas(int mx, int my) const;
+    
+    // app mode
+    enum AppMode { MODE_PAINT, MODE_ANIMATION };
+    AppMode mode = MODE_PAINT;
     
     // pencil tool
     bool pencilDown = false;

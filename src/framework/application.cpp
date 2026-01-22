@@ -208,7 +208,10 @@ void Application::Render(void)
 // Called after render
 void Application::Update(float seconds_elapsed)
 {
-    particleSys.Update(seconds_elapsed);
+    if (mode == MODE_ANIMATION)
+    {
+        particleSys.Update(seconds_elapsed);
+    }
 }
 
 // helper to convert coords from mouse to canvas (since SDL and SetPixel use inverted from one another)
@@ -232,16 +235,54 @@ static void DragToRect(const Vector2& a, const Vector2& b, int& x, int& y, int& 
 
 
 //keyboard press event 
-void Application::OnKeyPressed( SDL_KeyboardEvent event )
+void Application::OnKeyPressed(SDL_KeyboardEvent event)
 {
-	// KEY CODES: https://wiki.libsdl.org/SDL2/SDL_Keycode
-	switch(event.keysym.sym) {
-		case SDLK_ESCAPE: exit(0); break; // ESC key, kill the app
-	}
+    switch (event.keysym.sym)
+    {
+        case SDLK_ESCAPE:
+            exit(0);
+            break;
+
+        // "1" -> Paint
+        case SDLK_1:
+            mode = MODE_PAINT;
+            std::cout << "Mode: Paint\n";
+            break;
+        // "2" -> animation
+        case SDLK_2:
+            mode = MODE_ANIMATION;
+            std::cout << "Mode: Animation\n";
+            break;
+        // "F" -> Fill Shapes toggle
+        case SDLK_f:
+            fillShapes = !fillShapes;
+            std::cout << "FillShapes: " << (fillShapes ? "ON" : "OFF") << std::endl;
+            break;
+        // "+" -> Increase border width
+        // (on mac keyboards '+' is SHIFT+'=' so SDLK_EQUALS is common)
+        case SDLK_PLUS:
+        case SDLK_EQUALS:
+            borderWidth++;
+            if (borderWidth > maxBorderWidth) borderWidth = maxBorderWidth;
+            std::cout << "BorderWidth: " << borderWidth << std::endl;
+            break;
+
+        // "-" -> Decrease border width
+        case SDLK_MINUS:
+            borderWidth--;
+            if (borderWidth < minBorderWidth) borderWidth = minBorderWidth;
+            std::cout << "BorderWidth: " << borderWidth << std::endl;
+            break;
+
+        default:
+            break;
+    }
 }
+
 
 void Application::OnMouseButtonDown( SDL_MouseButtonEvent event )
 {
+    if (mode == MODE_ANIMATION) return;
     if (event.button != SDL_BUTTON_LEFT) return;
 
     Vector2 m = MouseToCanvas(event.x, event.y); // bottom-left coords
@@ -389,6 +430,7 @@ void Application::HandleButton(ButtonType t)
 
 void Application::OnMouseButtonUp( SDL_MouseButtonEvent event )
 {
+    if (mode == MODE_ANIMATION) return;
     if (event.button != SDL_BUTTON_LEFT) return;
     
     mouse_position = MouseToCanvas(event.x, event.y);
@@ -418,12 +460,13 @@ void Application::OnMouseButtonUp( SDL_MouseButtonEvent event )
     } else if (currentTool == TOOL_RECT) {  // draw rectangle
         int x, y, w, h;
         DragToRect(startPos, currentPos, x, y, w, h);   // convert into coords and sizes values
-        framebuffer.DrawRect(x, y, w, h, borderColor, 1, fillShapes, fillColor);
+        framebuffer.DrawRect(x, y, w, h, borderColor, borderWidth, fillShapes, fillColor);
     }
 }
 
 void Application::OnMouseMove(SDL_MouseButtonEvent event)
 {
+    if (mode == MODE_ANIMATION) return;
     mouse_delta = Vector2((float)event.x, (float)(-event.y));   // flip y sign
     mouse_position = MouseToCanvas(event.x, event.y);
     
@@ -473,7 +516,7 @@ void Application::OnMouseMove(SDL_MouseButtonEvent event)
     } else if (currentTool == TOOL_RECT) {
         int x, y, w, h; // origin and size      // cant figure out a way to omit toolbar for lines/rect
         DragToRect(startPos, currentPos, x, y, w, h);   // turn into coords and sizes values
-        framebuffer.DrawRect(x, y, w, h, borderColor, 1, fillShapes, fillColor);    // draw rectangle
+        framebuffer.DrawRect(x, y, w, h, borderColor, borderWidth, fillShapes, fillColor);    // draw rectangle
     } else if (currentTool == TOOL_CIRCLE) {
         // compute dx, dy from center to mouse
         float dx = currentPos.x - startPos.x;
