@@ -90,7 +90,10 @@ endif (NOT UNIX)
 # sdl2
 target_link_libraries(ComputerGraphics PRIVATE SDL2)
 target_link_libraries(ComputerGraphics PRIVATE SDL2main)
-include_directories(ComputerGraphics libraries/sdl2/include)
+target_include_directories(ComputerGraphics PRIVATE
+    ${DIR_ROOT}/libraries/sdl2/include
+    "${CMAKE_BINARY_DIR}/libraries/sdl2 2/include-config-$<CONFIG>"
+)
 set_property(TARGET SDL2 PROPERTY FOLDER "External/SDL2")
 set_property(TARGET SDL2main PROPERTY FOLDER "External/SDL2")
 set_property(TARGET sdl_headers_copy PROPERTY FOLDER "External/SDL2")

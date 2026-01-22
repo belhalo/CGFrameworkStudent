@@ -486,18 +486,18 @@ void Image::DrawCircle(int cx, int cy, int radius, const Color& borderColor, int
         int d = 1 - radius;
 
         // continue until x < y (we passed the 45° line)
-        while (x >= y)
-        
+        while (x >= y) {
+            
             // for each (x,y) we can fill 4 spans:
             // y rows use ±x, and x rows use ±y due to symmetry
             DrawSpan(this, cx - x, cx + x, cy + y, fillColor);
             DrawSpan(this, cx - x, cx + x, cy - y, fillColor);
             DrawSpan(this, cx - y, cx + y, cy + x, fillColor);
             DrawSpan(this, cx - y, cx + y, cy - x, fillColor);
-
+            
             // move to next y
             y++;
-
+            
             // update decision variable
             // if d < 0, the midpoint is inside the circle -> keep x
             // else midpoint is outside -> decrement x
@@ -511,6 +511,7 @@ void Image::DrawCircle(int cx, int cy, int radius, const Color& borderColor, int
                 d += 2 * (y - x) + 1;
             }
         }
+    }
 
 
 
