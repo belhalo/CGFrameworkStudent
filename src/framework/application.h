@@ -8,6 +8,7 @@
 #include "framework.h"
 #include "image.h"
 #include "button.h"
+#include "particleSystem.h"
 
 class Application
 {
@@ -22,6 +23,9 @@ public:
 	int window_height;
 
 	float time;
+
+	// Particle
+	ParticleSystem particleSys;
 
 	// Input
 	const Uint8* keystate;
@@ -90,3 +94,4 @@ public:
 		return Vector2(float(w), float(h));
 	}
 };
+

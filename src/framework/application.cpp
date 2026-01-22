@@ -21,6 +21,7 @@ Application::Application(const char* caption, int width, int height)
 
 Application::~Application()
 {
+
 }
 
 void Application::Init(void)
@@ -28,7 +29,7 @@ void Application::Init(void)
 	std::cout << "Initiating app..." << std::endl;
 
 	// init the window colours
-	framebuffer.Fill(Color::WHITE);
+	framebuffer.Fill(Color::BLACK);
 	framebuffer.DrawRect(0, 0, 1280, 50, Color::GRAY, 0, true, Color::GRAY);
 
 	// init the toolbar
@@ -176,8 +177,13 @@ void Application::Init(void)
         buttons.emplace_back(ButtonType::ColorGreen, Vector2(x, y), greenI);  x += step;
 
         // draw toolbar icons once 
-        for (const auto& b : buttons)
+        for (const auto& b : buttons) {
             framebuffer.DrawImage(b.icon, (int)b.pos.x, (int)b.pos.y);
+        }
+
+    
+        particleSys.Init();
+ 
 }
 
 // Render one frame
@@ -193,13 +199,16 @@ void Application::Render(void)
 	//framebuffer.DrawLineDDA(230, 300, 230 + 100 * cos(time), 300 + 100 * sin(time), Color::CYAN);
 	//framebuffer.DrawRect(200, 300, 400, 400, Color::BLUE, 3, true, Color::BLUE);
 	//framebuffer.DrawTriangle({ 100, 100 }, { 200, 200 }, { 300, 100 }, Color::BLUE, true, Color::RED);
+    
+    particleSys.Render(&framebuffer);
+
 	framebuffer.Render();
 }
 
 // Called after render
 void Application::Update(float seconds_elapsed)
 {
-
+    particleSys.Update(seconds_elapsed);
 }
 
 // helper to convert coords from mouse to canvas (since SDL and SetPixel use inverted from one another)

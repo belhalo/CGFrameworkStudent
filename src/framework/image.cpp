@@ -487,7 +487,7 @@ void Image::DrawCircle(int cx, int cy, int radius, const Color& borderColor, int
 
         // continue until x < y (we passed the 45° line)
         while (x >= y)
-        {
+        
             // for each (x,y) we can fill 4 spans:
             // y rows use ±x, and x rows use ±y due to symmetry
             DrawSpan(this, cx - x, cx + x, cy + y, fillColor);
@@ -511,21 +511,21 @@ void Image::DrawCircle(int cx, int cy, int radius, const Color& borderColor, int
                 d += 2 * (y - x) + 1;
             }
         }
-    }
+
+
+
 
     // draw outline (borderWidth)
     // draw concentric circles with r, r-1, r-2... (similar to og triangle idea)
-    for (int t = 0; t < borderWidth; ++t)
-    {
-        int r = radius - t;
+    for(int t = 0; t<borderWidth; ++t){
+	   int r = radius - t;
         if (r <= 0) break;
 
         int x = r;
         int y = 0;
         int d = 1 - r;
 
-        while (x >= y)
-        {
+        while (x >= y){
             // plot all 8 symmetric points
             Plot8(this, cx, cy, x, y, borderColor);
 
@@ -544,9 +544,10 @@ void Image::DrawCircle(int cx, int cy, int radius, const Color& borderColor, int
             }
         }
     }
+	
 }
 
-void Image::DrawImage(const Image& image, int x, int y) {
+void Image::DrawImage(const Image& image, int x, int y){
 	for (int j = 0; j < image.height; j++) {
 		for (int i = 0; i < image.width; i++) {
 			Color c = image.GetPixelSafe(i, j);
