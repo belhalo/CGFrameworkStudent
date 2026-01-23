@@ -320,7 +320,7 @@ void Application::OnMouseButtonDown( SDL_MouseButtonEvent event )
             int x = (int)mouse_position.x + ox;
             int y = (int)mouse_position.y + oy;
             if (x >= 0 && x < (int)framebuffer.width && y >= 50 && y < (int)framebuffer.height) {
-                framebuffer.SetPixel((unsigned)x, (unsigned)y, Color::WHITE);
+                framebuffer.SetPixel((unsigned)x, (unsigned)y, Color::BLACK);
             }
         }
         return;
@@ -369,7 +369,7 @@ void Application::HandleButton(ButtonType t)
             
             
         case ButtonType::Clear:
-            framebuffer.Fill(Color::WHITE);
+            framebuffer.Fill(Color::BLACK);
             framebuffer.DrawRect(0, 0, 1280, 50, Color::GRAY, 0, true, Color::GRAY);
             for (const auto& b : buttons) b.Render(framebuffer);
             break;
@@ -383,7 +383,7 @@ void Application::HandleButton(ButtonType t)
             }
 
             // clear canvas
-            framebuffer.Fill(Color::WHITE);
+            framebuffer.Fill(Color::BLACK);
 
             // draw loaded image above toolbar.
             framebuffer.DrawImage(img, 0, 50);
@@ -492,7 +492,7 @@ void Application::OnMouseMove(SDL_MouseButtonEvent event)
         // erase along the path with a line
         framebuffer.DrawLineDDA((int)lastStrokePos.x, (int)lastStrokePos.y,
                                 (int)cur.x,          (int)cur.y,
-                                Color::WHITE);
+                                Color::BLACK);
         
         // make it thick by stamping a square around the cursor     <--- COULD MAKE IT A CIRCLE
         for (int oy = -eraserRadius; oy <= eraserRadius; ++oy)
@@ -501,7 +501,7 @@ void Application::OnMouseMove(SDL_MouseButtonEvent event)
                 int x = (int)cur.x + ox;
                 int y = (int)cur.y + oy;
                 if (x >= 0 && x < (int)framebuffer.width && y >= 50 && y < (int)framebuffer.height) {
-                    framebuffer.SetPixel((unsigned)x, (unsigned)y, Color::WHITE);
+                    framebuffer.SetPixel((unsigned)x, (unsigned)y, Color::BLACK);
                 }
             }
         lastStrokePos = cur;
