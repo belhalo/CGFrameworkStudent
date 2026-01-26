@@ -1,119 +1,90 @@
 cmake_minimum_required(VERSION 3.12)
 project(CGFrameworkStudent)
 
-function(COPY_FROM_TO_DIR src_dir dst_dir)
-    file(GLOB src_files ${src_dir}/*)
-    foreach(src_file IN LISTS src_files)
-        get_filename_component(file_and_ext ${src_file} NAME)
-        set(dst_file ${dst_dir}/${file_and_ext})
-#        MESSAGE(STATUS "[[[COPY_FROM_TO_DIR]]] :\n   * ${src_file}\n   * ${dst_file}")
-#        add_custom_command(COMMAND ${CMAKE_COMMAND} -E make_directory ${dst_dir} OUTPUT ${dst_dir})
-        add_custom_command(
-            TARGET ${PROJECT_NAME} PRE_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy ${src_file} ${dst_file}
-        )
-    endforeach()
-endfunction()
-
-# Macro to map filters to folder structure for MSVC projects
-macro(GroupSources curdir)
-    if(MSVC)
-		file(GLOB children RELATIVE ${PROJECT_SOURCE_DIR}/${curdir} ${PROJECT_SOURCE_DIR}/${curdir}/*)
-
-        foreach(child ${children})
-            if(IS_DIRECTORY ${PROJECT_SOURCE_DIR}/${curdir}/${child})
-                GroupSources(${curdir}/${child})
-            else()
-                string(REPLACE "/" "\\" groupname ${curdir})
-                source_group(${groupname} FILES ${PROJECT_SOURCE_DIR}/${curdir}/${child})
-            endif()
-        endforeach()
-    endif()
-endmacro()
-
 # Directories
-set(DIR_ROOT       ${CMAKE_CURRENT_LIST_DIR})
-set(DIR_SOURCES    "${DIR_ROOT}/src")
+set(DIR_ROOT    ${CMAKE_CURRENT_LIST_DIR})
+set(DIR_SOURCES ${DIR_ROOT}/src)
 
-project (ComputerGraphics CXX)
-
+# OpenGL
 find_package(OpenGL REQUIRED)
-
 if(NOT TARGET OpenGL::GLU)
     message(FATAL_ERROR "GLU could not be found")
-endif(NOT TARGET OpenGL::GLU)
+endif()
 
-set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-
+# Output directories
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
+# External libraries
 add_subdirectory(libraries/sdl2 EXCLUDE_FROM_ALL)
 add_subdirectory(libraries/glew-cmake EXCLUDE_FROM_ALL)
 
-# Sources
+# Source collection helpers
 macro(CG_FILES_APPEND)
     file(GLOB FILES_APPEND CONFIGURE_DEPENDS ${ARGV})
     list(APPEND CG_SOURCES ${FILES_APPEND})
 endmacro()
+
 macro(CG_SOURCES_APPEND)
     CG_FILES_APPEND(${ARGV0}/*.h)
     CG_FILES_APPEND(${ARGV0}/*.cpp)
 endmacro()
 
+# Project sources
 CG_SOURCES_APPEND(${DIR_SOURCES}/extra)
 CG_SOURCES_APPEND(${DIR_SOURCES}/framework)
 CG_SOURCES_APPEND(${DIR_SOURCES}/main)
 
 add_executable(ComputerGraphics ${CG_SOURCES})
 
-target_include_directories(ComputerGraphics PUBLIC ${DIR_SOURCES})
+# Include directories
+target_include_directories(ComputerGraphics PUBLIC
+    ${DIR_SOURCES}
+)
 
-set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ComputerGraphics)
+# SDL2 
+target_link_libraries(ComputerGraphics PRIVATE SDL2 SDL2main)
+
+target_include_directories(ComputerGraphics PRIVATE
+    ${DIR_ROOT}/libraries/sdl2/include
+
+    # SDL generates SDL_config.h per configuration (lowercase!)
+    ${CMAKE_BINARY_DIR}/libraries/sdl2/include-config-debug
+    ${CMAKE_BINARY_DIR}/libraries/sdl2/include-config-release
+    ${CMAKE_BINARY_DIR}/libraries/sdl2/include-config-relwithdebinfo
+    ${CMAKE_BINARY_DIR}/libraries/sdl2/include-config-minsizerel
+)
+
+set_property(TARGET SDL2 PROPERTY FOLDER "External/SDL2")
+set_property(TARGET SDL2main PROPERTY FOLDER "External/SDL2")
+
+# GLEW
+add_definitions(-DGLEW_STATIC)
+target_link_libraries(ComputerGraphics PRIVATE libglew_static)
+set_property(TARGET libglew_static PROPERTY FOLDER "External/GLEW")
+
+# OpenGL
+target_link_libraries(ComputerGraphics PRIVATE OpenGL::GL OpenGL::GLU)
+
+# Compiler settings
 set_property(TARGET ComputerGraphics PROPERTY CXX_STANDARD 11)
+set_property(TARGET ComputerGraphics PROPERTY CXX_STANDARD_REQUIRED ON)
 
-GroupSources(src)
-
-# Ensure that _AMD64_ or _X86_ are defined on Microsoft Windows, as otherwise
-# um/winnt.h provided since Windows 10.0.22000 will error.
+# Windows-only definitions
 if (NOT UNIX)
     if(CMAKE_SIZEOF_VOID_P EQUAL 8)
         add_definitions(-D_AMD64_)
         message(STATUS "64 bits detected")
-    elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
+    else()
         add_definitions(-D_X86_)
         message(STATUS "32 bits detected")
     endif()
-endif (NOT UNIX)
+endif()
 
-# sdl2
-target_link_libraries(ComputerGraphics PRIVATE SDL2)
-target_link_libraries(ComputerGraphics PRIVATE SDL2main)
-target_include_directories(ComputerGraphics PRIVATE
-    ${DIR_ROOT}/libraries/sdl2/include
-    "${CMAKE_BINARY_DIR}/libraries/sdl2 2/include-config-$<CONFIG>"
-)
-set_property(TARGET SDL2 PROPERTY FOLDER "External/SDL2")
-set_property(TARGET SDL2main PROPERTY FOLDER "External/SDL2")
-set_property(TARGET sdl_headers_copy PROPERTY FOLDER "External/SDL2")
+# Debug info
+message(STATUS "Root dir: ${DIR_ROOT}")
+message(STATUS "Build dir: ${CMAKE_BINARY_DIR}")
 
-# glew
-add_definitions(-DGLEW_STATIC)
-target_link_libraries(ComputerGraphics PRIVATE libglew_static)
-set_property(TARGET libglew_static PROPERTY FOLDER "External/libglew_static")
-
-#opengl
-target_link_libraries(ComputerGraphics PRIVATE OpenGL::GL OpenGL::GLU)
-
-# Properties
-set_target_properties(ComputerGraphics PROPERTIES CXX_STANDARD 11)
-set_target_properties(ComputerGraphics PROPERTIES CXX_STANDARD_REQUIRED ON)
-
-message(STATUS "dir root: ${DIR_ROOT}")
-message(STATUS "bin root: ${CMAKE_BINARY_DIR}")
-
-#COPY_FROM_TO_DIR(${DIR_ROOT}/res/meshes ${CMAKE_BINARY_DIR}/res/meshes)
-#COPY_FROM_TO_DIR(${DIR_ROOT}/res/shaders ${CMAKE_BINARY_DIR}/res/shaders)
-#COPY_FROM_TO_DIR(${DIR_ROOT}/res/textures ${CMAKE_BINARY_DIR}/res/textures)
-#COPY_FROM_TO_DIR(${DIR_ROOT}/res/images ${CMAKE_BINARY_DIR}/res/images)
