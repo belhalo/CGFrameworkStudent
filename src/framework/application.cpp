@@ -2,13 +2,14 @@
 #include "mesh.h"
 #include "shader.h"
 #include "utils.h" 
+#include "entity.h"
 
 Application::Application(const char* caption, int width, int height)
 {
 	this->window = createWindow(caption, width, height);
 
 	int w,h;
-	SDL_GetWindowSize(window,&w,&h);
+    SDL_GetWindowSize(window, &w, &h);
 
 	this->mouse_state = 0;
 	this->time = 0.f;
@@ -183,6 +184,9 @@ void Application::Init(void)
 
     
         particleSys.Init();
+
+      
+        
  
 }
 
@@ -200,9 +204,18 @@ void Application::Render(void)
 	//framebuffer.DrawRect(200, 300, 400, 400, Color::BLUE, 3, true, Color::BLUE);
 	//framebuffer.DrawTriangle({ 100, 100 }, { 200, 200 }, { 300, 100 }, Color::BLUE, true, Color::RED);
     
-    particleSys.Render(&framebuffer);
+    //particleSys.Render(&framebuffer);
 
 	framebuffer.Render();
+
+    /////////////////////////////////////////////////////////////
+    // MESH EXAMPLE TO TRY OUTTT!! 
+    Mesh* m1 = new Mesh();
+    if (!(m1->LoadOBJ("meshes/lee.obj"))) {
+        std::cout << "Object not found!" << std::endl;
+    }
+    m1->Render();
+    /////////////////////////////////////////////////////////////
 }
 
 // Called after render

@@ -11,7 +11,19 @@
 #include "main/includes.h"
 #include "mesh.h"
 
+// in entity class we will include mesh and model matrix
 class Entity {
-    Mesh * mesh = new Mesh();
-    mesh->loadOBJ("meshes/lee.obj");
+private:
+    // (1) Create an Entity class which contains a mesh and a model matrix.
+    // (2) Instantiate a new entity and assign a model matrix and a mesh.
+    Mesh* mesh;
+    Matrix44* modelMatrix;
+
+public: 
+    // entity constructor
+    Entity() {
+        this->mesh = new Mesh();
+        this->modelMatrix = new Matrix44();
+    }
+
 };
