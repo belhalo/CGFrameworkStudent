@@ -62,6 +62,7 @@ public:
 	// Compute the matrices
 	void UpdateViewMatrix();
 	void UpdateProjectionMatrix();
+
 	void UpdateViewProjectionMatrix();
 
 	Matrix44 GetViewProjectionMatrix();
