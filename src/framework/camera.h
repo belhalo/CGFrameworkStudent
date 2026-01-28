@@ -1,6 +1,6 @@
 /*
 	This class wraps the behaviour of a camera. A Camera helps to set the point of view from where we will render the scene.
-	The most important attributes are  eye and center which say where is the camera and where is it pointing.
+	The most important attributes are eye and center which say where is the camera and where is it pointing.
 	This class also stores the matrices used to do the transformation and projection of the scene.
 */
 #pragma once
@@ -35,9 +35,12 @@ public:
 	float left, right, top, bottom;
 
 	// Matrices
-	Matrix44 view_matrix;
-	Matrix44 projection_matrix;
-	Matrix44 viewprojection_matrix;
+		// (1) viewing transformation -> world-to-camera 
+	    // (2) projection trnasformation -> camera-to-canonicalView
+	    // (3) viewpart transformation -> canonicalView-to-screen
+	Matrix44 view_matrix; 
+ 	Matrix44 projection_matrix; 
+	Matrix44 viewprojection_matrix; 
 
 	Camera();
 

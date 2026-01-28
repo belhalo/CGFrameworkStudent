@@ -207,6 +207,7 @@ void Application::Render(void)
     //particleSys.Render(&framebuffer);
 
 	framebuffer.Render();
+    // Camera c = new Came
 
     /////////////////////////////////////////////////////////////
     // MESH EXAMPLE TO TRY OUTTT!! 
@@ -216,6 +217,12 @@ void Application::Render(void)
     }
     m1->Render();
     /////////////////////////////////////////////////////////////
+    // Create the entity and assign the loaded mesh
+    Entity* e = new Entity();
+    Matrix44 matrix = Matrix44();
+    //(Image * framebuffer, Camera * camera, const Color & c) {
+    //e->EntityAdd(m1,matrix);
+    //e->Render(framebuffer, camera, Color::RED);
 }
 
 // Called after render

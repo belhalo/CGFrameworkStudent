@@ -28,9 +28,11 @@ public:
     }
 
     // entity constructor assigning
-    Entity(Mesh* m, Matrix44 M) {
+    void EntityAdd(Mesh* m, Matrix44 M) {
         this->mesh = m;
         this->modelMatrix = M;
     }
+
+    void Render(Image* framebuffer, Camera* camera, const Color& c);
 
 };
