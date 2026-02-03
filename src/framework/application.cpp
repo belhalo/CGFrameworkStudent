@@ -182,12 +182,7 @@ void Application::Init(void)
             framebuffer.DrawImage(b.icon, (int)b.pos.x, (int)b.pos.y);
         }
 
-    
-        particleSys.Init();
-
-      
-        
- 
+        particleSys.Init(); 
 }
 
 // Render one frame
@@ -207,7 +202,9 @@ void Application::Render(void)
     //particleSys.Render(&framebuffer);
 
 	framebuffer.Render();
-    // Camera c = new Came
+    Camera* c = new Camera;
+    c->eye = Vector3(20, -5, 8);
+
 
     /////////////////////////////////////////////////////////////
     // MESH EXAMPLE TO TRY OUTTT!! 
@@ -215,14 +212,17 @@ void Application::Render(void)
     if (!(m1->LoadOBJ("meshes/lee.obj"))) {
         std::cout << "Object not found!" << std::endl;
     }
-    m1->Render();
+    //m1->Render();
     /////////////////////////////////////////////////////////////
     // Create the entity and assign the loaded mesh
-    Entity* e = new Entity();
+    Entity e;
     Matrix44 matrix = Matrix44();
-    //(Image * framebuffer, Camera * camera, const Color & c) {
-    //e->EntityAdd(m1,matrix);
-    //e->Render(framebuffer, camera, Color::RED);
+
+    matrix.MakeScaleMatrix(1.2, -1.2, 1.2);
+   // matrix.MakeTranslationMatrix(0,0,0);
+    e.EntityAdd(m1,matrix);
+    e.Render(&framebuffer, c, Color::BLUE);
+
 }
 
 // Called after render

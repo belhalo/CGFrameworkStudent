@@ -34,5 +34,5 @@ public:
     }
 
     void Render(Image* framebuffer, Camera* camera, const Color& c);
-
+    bool isInsideClip(Vector3 vect);
 };
