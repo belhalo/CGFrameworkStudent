@@ -37,7 +37,7 @@ void Entity::Render(Image* framebuffer, Camera* camera, const Color& c) {
 		Vector3 vecClip2 = camera->ProjectVector(vecWorld2);
 
 		// make sure that all the vectors are inside the clip space
-		if (isInsideClip(vecClip0) && isInsideClip(vecClip1) && isInsideClip(vecClip2)){
+		//if (isInsideClip(vecClip0) && isInsideClip(vecClip1) && isInsideClip(vecClip2)){
 			// map clip space [-1, 1] to Screen Space [pixels]
 			float screenX0 = (vecClip0.x + 1.0f) * 0.5f * framebuffer->width;
 			float screenY0 = (1.0f - (vecClip0.y + 1.0f) * 0.5f) * framebuffer->height;
@@ -52,14 +52,21 @@ void Entity::Render(Image* framebuffer, Camera* camera, const Color& c) {
 			framebuffer->DrawLineDDA(screenX0, screenY0, screenX1, screenY1, c);
 			framebuffer->DrawLineDDA(screenX1, screenY1, screenX2, screenY2, c);
 			framebuffer->DrawLineDDA(screenX2, screenY2, screenX0, screenY0, c);
-		}
+		//}
 	}
 }
 
-bool Entity::isInsideClip(Vector3 vect){
+bool Entity::isInsideClip(Vector3 vect) {
 	// if the condition is satisfied -> function will return true, if not, false
 	return (-1 < vect.x) && (vect.x < 1)
 		&& (-1 < vect.y) && (vect.y < 1)
 		&& (-1 < vect.z) && (vect.z < 1);
 }
 
+void Entity::Update(float seconds_elapsed){
+	this->modelMatrix.SetIdentity();
+
+
+
+
+}

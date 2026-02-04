@@ -186,48 +186,48 @@ void Application::Init(void)
 }
 
 // Render one frame
-
-	// ancho del rectangulo
-	// sin() and cos()
 void Application::Render(void)
 {
-	// remainder that w = 1280, h = 720
-	// set up the window
-	
-	//framebuffer.DrawLineDDA(100, 100, 300, 300, Color::CYAN);
-	//framebuffer.DrawLineDDA(230, 300, 230 + 100 * cos(time), 300 + 100 * sin(time), Color::CYAN);
-	//framebuffer.DrawRect(200, 300, 400, 400, Color::BLUE, 3, true, Color::BLUE);
-	//framebuffer.DrawTriangle({ 100, 100 }, { 200, 200 }, { 300, 100 }, Color::BLUE, true, Color::RED);
-    
-    //particleSys.Render(&framebuffer);
-
-	framebuffer.Render();
     Camera* c = new Camera;
-    c->eye = Vector3(20, -5, 8);
+    float aspect = (float)window_width / (float)window_height;
+    c->SetPerspective(60, aspect,1, 7);
+    
+    c->eye = Vector3(1, 0.7, 0.5);
+    c->center = Vector3(0.2, 0.5, 0.8);
+    c->up = Vector3(0, 1, 0);   
+    c->PERSPECTIVE;
 
-
+    c->UpdateViewMatrix();
+   // c->UpdateProjectionMatrix();
+  
     /////////////////////////////////////////////////////////////
     // MESH EXAMPLE TO TRY OUTTT!! 
     Mesh* m1 = new Mesh();
     if (!(m1->LoadOBJ("meshes/lee.obj"))) {
         std::cout << "Object not found!" << std::endl;
     }
-    //m1->Render();
-    /////////////////////////////////////////////////////////////
-    // Create the entity and assign the loaded mesh
+
+    // create the entity and assign the loaded mesh
     Entity e;
     Matrix44 matrix = Matrix44();
 
-    matrix.MakeScaleMatrix(1.2, -1.2, 1.2);
-   // matrix.MakeTranslationMatrix(0,0,0);
+    //matrix.MakeScaleMatrix(1, -1, 1);
+    //matrix.MakeRotationMatrix(PI/6 , Vector3(1, 3, 1));
+    //matrix.MakeTranslationMatrix(0.5, -0.5, 0.5);
+
     e.EntityAdd(m1,matrix);
     e.Render(&framebuffer, c, Color::BLUE);
+    e.Render(&framebuffer, c, Color::WHITE);
+    e.Render(&framebuffer, c, Color::PURPLE);
 
+    framebuffer.Render();
 }
 
 // Called after render
 void Application::Update(float seconds_elapsed)
 {
+    std::vector<Entity> ent;
+
     if (mode == MODE_ANIMATION)
     {
         particleSys.Update(seconds_elapsed);
