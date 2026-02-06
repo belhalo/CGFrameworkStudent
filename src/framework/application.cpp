@@ -33,6 +33,37 @@ void Application::Init(void)
 	framebuffer.Fill(Color::BLACK);
 	framebuffer.DrawRect(0, 0, 1280, 50, Color::GRAY, 0, true, Color::GRAY);
 
+    // init the camera
+    this->cam = new Camera(); // create a new camera, but as we are in the init the only create it once
+    float aspect = (float) window_width / (float) window_height;
+
+    // setting the camera attributes
+    cam->eye = Vector3(1, 0.3, 0.5);
+    cam->center = Vector3(0.1, 0.2, 0.8); 
+    cam->up = Vector3(0, 1, 0);
+
+    cam->ORTHOGRAPHIC;
+    cam->UpdateViewMatrix();
+    //cam->SetPerspective();
+
+    // download the mesh from the resourses
+    Mesh* m = new Mesh();
+    if (!(m->LoadOBJ("meshes/lee.obj"))) {
+        std::cout << "Object not found!" << std::endl;
+    }
+
+    // setting the meshes in the entity class
+    int numberEntities = 3; //modify it depending the number of entities we want 
+    for (int i = 0; i < numberEntities ; i++) {
+        Entity* e = new Entity;
+        Matrix44 matrix;
+        matrix.MakeTranslationMatrix(i * 2.0 - 2.0, 0, 0);
+  
+        e->EntityAdd(m, matrix);
+        this->entities.emplace_back(e);
+
+    }
+
 	// init the toolbar
 	Image clear;
 	if (clear.LoadPNG("images/clear.png", true) == false) {
@@ -166,7 +197,6 @@ void Application::Init(void)
         buttons.emplace_back(ButtonType::Triangle,  Vector2(x, y), triI);    x += step;
         buttons.emplace_back(ButtonType::Circle,    Vector2(x, y), cirI);    x += step;
 
-
         // colors
         buttons.emplace_back(ButtonType::ColorBlack, Vector2(x, y), blackI);  x += step;
         buttons.emplace_back(ButtonType::ColorWhite, Vector2(x, y), whiteI);  x += step;
@@ -188,46 +218,35 @@ void Application::Init(void)
 // Render one frame
 void Application::Render(void)
 {
-    Camera* c = new Camera;
-    float aspect = (float)window_width / (float)window_height;
-    c->SetPerspective(60, aspect,1, 7);
-    
-    c->eye = Vector3(1, 0.7, 0.5);
-    c->center = Vector3(0.2, 0.5, 0.8);
-    c->up = Vector3(0, 1, 0);   
-    c->PERSPECTIVE;
-
-    c->UpdateViewMatrix();
-   // c->UpdateProjectionMatrix();
-  
-    /////////////////////////////////////////////////////////////
-    // MESH EXAMPLE TO TRY OUTTT!! 
-    Mesh* m1 = new Mesh();
-    if (!(m1->LoadOBJ("meshes/lee.obj"))) {
-        std::cout << "Object not found!" << std::endl;
-    }
-
     // create the entity and assign the loaded mesh
-    Entity e;
-    Matrix44 matrix = Matrix44();
+    for (int i = 0; i < entities.size(); i++) {
+        // for default the color will be white
+        Color choosenColor = Color::WHITE;
 
+        // then, depending of the iteration we will painting in a color on in another -> to have variation
+        if (i == 1) choosenColor = Color::PURPLE;
+        else if (i == 2) choosenColor = Color::RED;
+
+        entities[i]->Render(&framebuffer, cam, choosenColor);
+    }
+    
+    framebuffer.Render();
+
+    //Matrix44 matrix = Matrix44();
     //matrix.MakeScaleMatrix(1, -1, 1);
     //matrix.MakeRotationMatrix(PI/6 , Vector3(1, 3, 1));
     //matrix.MakeTranslationMatrix(0.5, -0.5, 0.5);
 
-    e.EntityAdd(m1,matrix);
-    e.Render(&framebuffer, c, Color::BLUE);
-    e.Render(&framebuffer, c, Color::WHITE);
-    e.Render(&framebuffer, c, Color::PURPLE);
-
-    framebuffer.Render();
+    //e.EntityAdd(m1, matrix);
+    //e.Render(&framebuffer, c, Color::BLUE);
+    //e.Render(&framebuffer, c, Color::WHITE);
+    //e.Render(&framebuffer, c, Color::PURPLE);
 }
 
 // Called after render
 void Application::Update(float seconds_elapsed)
 {
     std::vector<Entity> ent;
-
     if (mode == MODE_ANIMATION)
     {
         particleSys.Update(seconds_elapsed);

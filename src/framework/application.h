@@ -23,6 +23,12 @@ public:
 
 	float time;
 
+	// Camera
+	Camera* cam; // we create a general camera
+
+	// Object
+	std::vector<Entity*> entities; // we create a list of entities to control all of them in the scene
+
 	// Particle
 	ParticleSystem particleSys;
 

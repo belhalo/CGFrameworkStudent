@@ -139,15 +139,18 @@ void Camera::UpdateViewMatrix()
 	this->view_matrix.M[2][2] = zc.z;
 	this->view_matrix.M[3][2] = 0; // as it is a vector
 
-	this->view_matrix.M[0][3] = -oc.x; //-xc.Dot(eye); ?
-	this->view_matrix.M[1][3] = -oc.y; //-yc.Dot(eye);
-	this->view_matrix.M[2][3] = -oc.z; //-zc.Dot(eye);
+	this->view_matrix.M[0][3] = oc.x; //-xc.Dot(eye); ?
+	this->view_matrix.M[1][3] = oc.y; //-yc.Dot(eye);
+	this->view_matrix.M[2][3] = oc.z; //-zc.Dot(eye);
 	this->view_matrix.M[3][3] = 1; // as it is a point
 
 	// Translate view matrix
+	////////////////////////////////////////////////
+	// CAL REVISAR SIGNES DE oc I LO DE LA INVERSA!!
+	/////////////////////////////////////////////////
+
 	this->view_matrix.Inverse();
 	
-	//////////////////////////////////
 	UpdateViewProjectionMatrix();
 }
 
@@ -173,6 +176,10 @@ void Camera::UpdateProjectionMatrix()
 		projection_matrix.M[3][2] = -1;
 		projection_matrix.M[3][3] = 0; // as it initially is set as a identity matrix we should rectify the 1 -> 0
 
+		////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		//CAL FER LA MULTIPLICACIÓ ENTRE Mpers = Morto * P (ON P ES MATRIU AUXILIAR AQUESTA D'AQUI A DALT LITERALMENTT)
+		////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 	}
 	else if (type == ORTHOGRAPHIC) {
 		projection_matrix.M[0][0] = 2 / (right - left);
@@ -182,6 +189,7 @@ void Camera::UpdateProjectionMatrix()
 		projection_matrix.M[0][3] = - (right + left) / (right - left);
 		projection_matrix.M[1][3] = - (top + bottom) / (top - bottom);
 		projection_matrix.M[2][3] = - (far_plane + near_plane) / (far_plane - near_plane);
+
 	} 
 
 	UpdateViewProjectionMatrix();

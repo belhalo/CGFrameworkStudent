@@ -66,7 +66,13 @@ bool Entity::isInsideClip(Vector3 vect) {
 void Entity::Update(float seconds_elapsed){
 	this->modelMatrix.SetIdentity();
 
+	
+	// Definimos un ejemplo de transformación como puede ser rotar en el tiempo
+    float angle = seconds_elapsed * 125.0f; // Rotaciçon de  125 grados cada segundo
+	float angleRad = angle * (2 * PI) / (360.0f);
 
-
-
+    Matrix44 rotationMatrix;
+	rotationMatrix.MakeRotationMatrix(angleRad, Vector3(0, 1, 0));
+   
+    modelMatrix = rotationMatrix * modelMatrix; // Aplicamos la rotación al modelo
 }
