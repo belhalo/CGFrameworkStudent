@@ -58,9 +58,6 @@ void Application::Init(void)
     this->cam = new Camera(); // create a new camera, but as we are in the init the only create it once
     float aspect = (float) window_width / (float) window_height;
 
-    // init the camera
-    this->cam = new Camera();
-    float aspect = (float)window_width / (float)window_height;
 
     // set camera pose (ONLY ONCE)
     cam->LookAt(
