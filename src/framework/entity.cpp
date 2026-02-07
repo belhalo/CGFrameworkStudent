@@ -15,7 +15,7 @@ void Entity::Render(Image* framebuffer, Camera* camera, const Color& c) {
 
 	// get vertices from the mesh and iter throught them 
 	// notice that getVertices returns a list of 3D vectors
-	std::vector<Vector3> meshVertices = this->mesh->GetVertices();
+    const auto& meshVertices = this->mesh->GetVertices();
 	// we can go 3 by 3 because we are counting three vertices for each triangle
 	for (int i = 0; i < meshVertices.size(); i = i + 3) {
 		// as we want multiply each point of the mesh by the model matrix, firstly we have to isolated 
@@ -37,7 +37,7 @@ void Entity::Render(Image* framebuffer, Camera* camera, const Color& c) {
 		Vector3 vecClip2 = camera->ProjectVector(vecWorld2);
 
 		// make sure that all the vectors are inside the clip space
-		//if (isInsideClip(vecClip0) && isInsideClip(vecClip1) && isInsideClip(vecClip2)){
+		if (isInsideClip(vecClip0) && isInsideClip(vecClip1) && isInsideClip(vecClip2)){
 			// map clip space [-1, 1] to Screen Space [pixels]
 			float screenX0 = (vecClip0.x + 1.0f) * 0.5f * framebuffer->width;
 			float screenY0 = (1.0f - (vecClip0.y + 1.0f) * 0.5f) * framebuffer->height;
@@ -52,7 +52,7 @@ void Entity::Render(Image* framebuffer, Camera* camera, const Color& c) {
 			framebuffer->DrawLineDDA(screenX0, screenY0, screenX1, screenY1, c);
 			framebuffer->DrawLineDDA(screenX1, screenY1, screenX2, screenY2, c);
 			framebuffer->DrawLineDDA(screenX2, screenY2, screenX0, screenY0, c);
-		//}
+		}
 	}
 }
 
@@ -75,4 +75,21 @@ void Entity::Update(float seconds_elapsed){
 	rotationMatrix.MakeRotationMatrix(angleRad, Vector3(0, 1, 0));
    
     modelMatrix = rotationMatrix * modelMatrix; // Aplicamos la rotación al modelo
+}
+
+void Entity::EntityAdd(Mesh* m, Matrix44 M) {
+    mesh = m;
+    baseMatrix = M;
+    modelMatrix = M;
+}
+
+void Entity::Update(float seconds_elapsed)
+{
+    static float total = 0.f;
+    total += seconds_elapsed;
+
+    Matrix44 R;
+    R.MakeRotationMatrix(total, Vector3(0,1,0)); // radians
+
+    modelMatrix = R * baseMatrix; // keep translation
 }

@@ -19,8 +19,8 @@ private:
 
     Mesh* mesh;             // stores the geometry information of the object itself
     Matrix44 modelMatrix;   // it defines the transformations of the object; such as the translation, location, rotation, scale...
-
-public: 
+    Matrix44 baseMatrix;
+public:
     // entity constructor init
     Entity() {
         this->mesh = NULL;

@@ -40,33 +40,50 @@ CG_SOURCES_APPEND(${DIR_SOURCES}/main)
 
 add_executable(ComputerGraphics ${CG_SOURCES})
 
-# Include directories
-target_include_directories(ComputerGraphics PUBLIC
-    ${DIR_SOURCES}
-)
+# -------------------------
+# SDL2 include paths (IMPORTANT)
+# SDL generates SDL_config.h into build/libraries/sdl2/include-config-<CONFIG>
+# SDL2main is compiled as its own target, so it must also see those include dirs.
+# -------------------------
+set(SDL2_SOURCE_INCLUDE ${DIR_ROOT}/libraries/sdl2/include)
+set(SDL2_BUILD_INCLUDE  ${CMAKE_BINARY_DIR}/libraries/sdl2/include)
+set(SDL2_CONFIG_INCLUDE ${CMAKE_BINARY_DIR}/libraries/sdl2/include-config-$<CONFIG>)
 
-# SDL2 
-target_link_libraries(ComputerGraphics PRIVATE SDL2 SDL2main)
-
+# Give include dirs to your app
 target_include_directories(ComputerGraphics PRIVATE
-    ${DIR_ROOT}/libraries/sdl2/include
-
-    # SDL generates SDL_config.h per configuration (lowercase!)
-    ${CMAKE_BINARY_DIR}/libraries/sdl2/include-config-debug
-    ${CMAKE_BINARY_DIR}/libraries/sdl2/include-config-release
-    ${CMAKE_BINARY_DIR}/libraries/sdl2/include-config-relwithdebinfo
-    ${CMAKE_BINARY_DIR}/libraries/sdl2/include-config-minsizerel
+    ${DIR_SOURCES}
+    ${SDL2_SOURCE_INCLUDE}
+    ${SDL2_BUILD_INCLUDE}
+    ${SDL2_CONFIG_INCLUDE}
 )
 
+# Also give include dirs to SDL targets themselves (fixes SDL2main build failures)
+target_include_directories(SDL2 PUBLIC
+    ${SDL2_SOURCE_INCLUDE}
+    ${SDL2_BUILD_INCLUDE}
+    ${SDL2_CONFIG_INCLUDE}
+)
+target_include_directories(SDL2main PUBLIC
+    ${SDL2_SOURCE_INCLUDE}
+    ${SDL2_BUILD_INCLUDE}
+    ${SDL2_CONFIG_INCLUDE}
+)
+
+# SDL2 link
+target_link_libraries(ComputerGraphics PRIVATE SDL2 SDL2main)
 set_property(TARGET SDL2 PROPERTY FOLDER "External/SDL2")
 set_property(TARGET SDL2main PROPERTY FOLDER "External/SDL2")
 
+# -------------------------
 # GLEW
+# -------------------------
 add_definitions(-DGLEW_STATIC)
 target_link_libraries(ComputerGraphics PRIVATE libglew_static)
 set_property(TARGET libglew_static PROPERTY FOLDER "External/GLEW")
 
+# -------------------------
 # OpenGL
+# -------------------------
 target_link_libraries(ComputerGraphics PRIVATE OpenGL::GL OpenGL::GLU)
 
 # Compiler settings
@@ -87,4 +104,3 @@ endif()
 # Debug info
 message(STATUS "Root dir: ${DIR_ROOT}")
 message(STATUS "Build dir: ${CMAKE_BINARY_DIR}")
-
