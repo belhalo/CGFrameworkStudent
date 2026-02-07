@@ -37,21 +37,21 @@ void Entity::Render(Image* framebuffer, Camera* camera, const Color& c) {
 		Vector3 vecClip2 = camera->ProjectVector(vecWorld2);
 
 		// make sure that all the vectors are inside the clip space
-		if (isInsideClip(vecClip0) && isInsideClip(vecClip1) && isInsideClip(vecClip2)){
-			// map clip space [-1, 1] to Screen Space [pixels]
-			float screenX0 = (vecClip0.x + 1.0f) * 0.5f * framebuffer->width;
-			float screenY0 = (1.0f - (vecClip0.y + 1.0f) * 0.5f) * framebuffer->height;
+		{
+            // map clip space [-1, 1] to Screen Space [pixels]
+            // framebuffer origin is bottom-left
+            float screenX0 = (vecClip0.x * 0.5f + 0.5f) * (framebuffer->width  - 1);
+            float screenY0 = (vecClip0.y * 0.5f + 0.5f) * (framebuffer->height - 1);
 
-			float screenX1 = (vecClip1.x + 1.0f) * 0.5f * framebuffer->width;
-			float screenY1 = (1.0f - (vecClip1.y + 1.0f) * 0.5f) * framebuffer->height;
+            float screenX1 = (vecClip1.x * 0.5f + 0.5f) * (framebuffer->width  - 1);
+            float screenY1 = (vecClip1.y * 0.5f + 0.5f) * (framebuffer->height - 1);
 
-			float screenX2 = (vecClip2.x + 1.0f) * 0.5f * framebuffer->width;
-			float screenY2 = (1.0f - (vecClip2.y + 1.0f) * 0.5f) * framebuffer->height;
+            float screenX2 = (vecClip2.x * 0.5f + 0.5f) * (framebuffer->width  - 1);
+            float screenY2 = (vecClip2.y * 0.5f + 0.5f) * (framebuffer->height - 1);
 
-			// Now you have the pixel coordinates to draw!
-			framebuffer->DrawLineDDA(screenX0, screenY0, screenX1, screenY1, c);
-			framebuffer->DrawLineDDA(screenX1, screenY1, screenX2, screenY2, c);
-			framebuffer->DrawLineDDA(screenX2, screenY2, screenX0, screenY0, c);
+            framebuffer->DrawLineDDA((int)screenX0, (int)screenY0, (int)screenX1, (int)screenY1, c);
+            framebuffer->DrawLineDDA((int)screenX1, (int)screenY1, (int)screenX2, (int)screenY2, c);
+            framebuffer->DrawLineDDA((int)screenX2, (int)screenY2, (int)screenX0, (int)screenY0, c);
 		}
 	}
 }

@@ -84,20 +84,40 @@ void Camera::UpdateViewMatrix()
 {
     view_matrix.SetIdentity();
 
-    Vector3 f = (center - eye).Normalize();      // forward
-    Vector3 s = f.Cross(up).Normalize();         // right
-    Vector3 u = s.Cross(f);                      // real up
+    Vector3 f = (center - eye).Normalize();   // forward
+    Vector3 s = f.Cross(up).Normalize();      // right
+    Vector3 u = s.Cross(f);                   // real up
 
-    // framework Matrix44 is column-major in memory but accessed as M[row][col]
-    // "rows are basis vectors"
+    // Matrix44::M is indexed as M[column][row]
+    // So columns store the basis vectors, and column 3 stores translation
 
-    view_matrix.M[0][0] =  s.x;  view_matrix.M[0][1] =  s.y;  view_matrix.M[0][2] =  s.z;  view_matrix.M[0][3] = -s.Dot(eye);
-    view_matrix.M[1][0] =  u.x;  view_matrix.M[1][1] =  u.y;  view_matrix.M[1][2] =  u.z;  view_matrix.M[1][3] = -u.Dot(eye);
-    view_matrix.M[2][0] = -f.x;  view_matrix.M[2][1] = -f.y;  view_matrix.M[2][2] = -f.z;  view_matrix.M[2][3] =  f.Dot(eye);
-    view_matrix.M[3][0] =  0.f;  view_matrix.M[3][1] =  0.f;  view_matrix.M[3][2] =  0.f;  view_matrix.M[3][3] =  1.f;
+    // Column 0 = right (s)
+    view_matrix.M[0][0] =  s.x;
+    view_matrix.M[0][1] =  s.y;
+    view_matrix.M[0][2] =  s.z;
+    view_matrix.M[0][3] = -s.Dot(eye);
+
+    // Column 1 = up (u)
+    view_matrix.M[1][0] =  u.x;
+    view_matrix.M[1][1] =  u.y;
+    view_matrix.M[1][2] =  u.z;
+    view_matrix.M[1][3] = -u.Dot(eye);
+
+    // Column 2 = -forward (-f)
+    view_matrix.M[2][0] = -f.x;
+    view_matrix.M[2][1] = -f.y;
+    view_matrix.M[2][2] = -f.z;
+    view_matrix.M[2][3] =  f.Dot(eye);
+
+    // Column 3 = (0,0,0,1)
+    view_matrix.M[3][0] = 0.f;
+    view_matrix.M[3][1] = 0.f;
+    view_matrix.M[3][2] = 0.f;
+    view_matrix.M[3][3] = 1.f;
 
     UpdateViewProjectionMatrix();
 }
+
 
 
 // Create a projection matrix
@@ -110,10 +130,14 @@ void Camera::UpdateProjectionMatrix()
         float fRad = fov * (PI / 180.0f);
         float f = 1.0f / tanf(fRad * 0.5f);
 
+        // Column-major (M[col][row])
+
         projection_matrix.M[0][0] = f / aspect;
         projection_matrix.M[1][1] = f;
+
         projection_matrix.M[2][2] = (far_plane + near_plane) / (near_plane - far_plane);
         projection_matrix.M[2][3] = (2.0f * far_plane * near_plane) / (near_plane - far_plane);
+
         projection_matrix.M[3][2] = -1.0f;
         projection_matrix.M[3][3] = 0.0f;
     }
@@ -123,13 +147,15 @@ void Camera::UpdateProjectionMatrix()
         projection_matrix.M[1][1] = 2.f / (top - bottom);
         projection_matrix.M[2][2] = -2.f / (far_plane - near_plane);
 
-        projection_matrix.M[0][3] = -(right + left) / (right - left);
-        projection_matrix.M[1][3] = -(top + bottom) / (top - bottom);
-        projection_matrix.M[2][3] = -(far_plane + near_plane) / (far_plane - near_plane);
+        projection_matrix.M[3][0] = -(right + left) / (right - left);
+        projection_matrix.M[3][1] = -(top + bottom) / (top - bottom);
+        projection_matrix.M[3][2] = -(far_plane + near_plane) / (far_plane - near_plane);
+        projection_matrix.M[3][3] = 1.f;
     }
 
     UpdateViewProjectionMatrix();
 }
+
 
 void Camera::UpdateViewProjectionMatrix()
 {
