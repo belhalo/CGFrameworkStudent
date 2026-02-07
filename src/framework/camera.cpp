@@ -82,118 +82,80 @@ void Camera::LookAt(const Vector3& eye, const Vector3& center, const Vector3& up
 
 void Camera::UpdateViewMatrix()
 {
-	// we also can use MakeTranslationMatrix and MakeRotationMatrix, in instead of putting each coordinates!
-	// Reset Matrix (Identity)
-	view_matrix.SetIdentity();
+    view_matrix.SetIdentity();
 
-	/*
-	Vector3 zc = (eye - center).Normalize(); // Forward (apuntant cap a la càmera)
-	Vector3 xc = up.Cross(zc).Normalize();   // Right
-	Vector3 yc = zc.Cross(xc).Normalize();   // Up real
+    Vector3 f = (center - eye).Normalize();   // forward
+    Vector3 s = f.Cross(up).Normalize();      // right
+    Vector3 u = s.Cross(f);                   // real up
 
-	// Orientació (Files)
+    // Matrix44::M is indexed as M[column][row]
+    // So columns store the basis vectors, and column 3 stores translation
 
-	view_matrix.M[0][0] = xc.x;  view_matrix.M[0][1] = xc.y;  view_matrix.M[0][2] = xc.z;
-	view_matrix.M[1][0] = yc.x;  view_matrix.M[1][1] = yc.y;  view_matrix.M[1][2] = yc.z;
-	view_matrix.M[2][0] = zc.x;  view_matrix.M[2][1] = zc.y;  view_matrix.M[2][2] = zc.z;
+    // Column 0 = right (s)
+    view_matrix.M[0][0] =  s.x;
+    view_matrix.M[0][1] =  s.y;
+    view_matrix.M[0][2] =  s.z;
+    view_matrix.M[0][3] = -s.Dot(eye);
 
-	// Translació: És el producte escalar negatiu de la posició pels eixos
-	view_matrix.M[0][3] = -xc.Dot(eye);
-	view_matrix.M[1][3] = -yc.Dot(eye);
-	view_matrix.M[2][3] = -zc.Dot(eye);
+    // Column 1 = up (u)
+    view_matrix.M[1][0] =  u.x;
+    view_matrix.M[1][1] =  u.y;
+    view_matrix.M[1][2] =  u.z;
+    view_matrix.M[1][3] = -u.Dot(eye);
 
-	view_matrix.M[3][3] = 1.0f;*/
+    // Column 2 = -forward (-f)
+    view_matrix.M[2][0] = -f.x;
+    view_matrix.M[2][1] = -f.y;
+    view_matrix.M[2][2] = -f.z;
+    view_matrix.M[2][3] =  f.Dot(eye);
 
-	
-	// Comment this line to create your own projection matrix!
-		//SetExampleViewMatrix();
+    // Column 3 = (0,0,0,1)
+    view_matrix.M[3][0] = 0.f;
+    view_matrix.M[3][1] = 0.f;
+    view_matrix.M[3][2] = 0.f;
+    view_matrix.M[3][3] = 1.f;
 
-	// Remember how to fill a Matrix4x4 (check framework slides)
-
-	// Careful with the order of matrix multiplications, and be sure to use normalized vectors!
-	Vector3 oc = eye; // origin point 
-
-	// define the vectors that will construct the Mcam
-	Vector3 z = eye - center;
-	Vector3 zc = z.Normalize();
-
-	Vector3 x =  zc.Cross(up);
-	Vector3 xc = x.Normalize();
-
-	Vector3 yc = zc.Cross(xc);
-
-
-	// Create the view matrix rotation
-	this->view_matrix.M[0][0] = xc.x;
-	this->view_matrix.M[1][0] = xc.y;
-	this->view_matrix.M[2][0] = xc.z;
-	this->view_matrix.M[3][0] = 0; // as it is a vector
-
-	this->view_matrix.M[0][1] = yc.x;
-	this->view_matrix.M[1][1] = yc.y;
-	this->view_matrix.M[2][1] = yc.z;
-	this->view_matrix.M[3][1] = 0; // as it is a vector
-
-	this->view_matrix.M[0][2] = zc.x;
-	this->view_matrix.M[1][2] = zc.y;
-	this->view_matrix.M[2][2] = zc.z;
-	this->view_matrix.M[3][2] = 0; // as it is a vector
-
-	this->view_matrix.M[0][3] = oc.x; //-xc.Dot(eye); ?
-	this->view_matrix.M[1][3] = oc.y; //-yc.Dot(eye);
-	this->view_matrix.M[2][3] = oc.z; //-zc.Dot(eye);
-	this->view_matrix.M[3][3] = 1; // as it is a point
-
-	// Translate view matrix
-	////////////////////////////////////////////////
-	// CAL REVISAR SIGNES DE oc I LO DE LA INVERSA!!
-	/////////////////////////////////////////////////
-
-	this->view_matrix.Inverse();
-	
-	UpdateViewProjectionMatrix();
+    UpdateViewProjectionMatrix();
 }
+
+
 
 // Create a projection matrix
 void Camera::UpdateProjectionMatrix()
 {
-	// Reset Matrix (Identity)
-	projection_matrix.SetIdentity();
+    projection_matrix.SetIdentity();
 
-	// Comment this line to create your own projection matrix!
-		//SetExampleProjectionMatrix();
+    if (type == PERSPECTIVE)
+    {
+        float fRad = fov * (PI / 180.0f);
+        float f = 1.0f / tanf(fRad * 0.5f);
 
-	float fRad = fov * (PI / 180.0f); // as it says at the camera.h normally is set in degrees -> so we have to transform it into radians
-	float f = 1 / tan(fRad / 2);
-	// Remember how to fill a Matrix4x4 (check framework slides)
-	if (type == PERSPECTIVE) {
+        // Column-major (M[col][row])
 
-		projection_matrix.M[0][0] = f / aspect;
-		projection_matrix.M[1][1] = f;
-		projection_matrix.M[2][2] = (far_plane + near_plane) / (near_plane - far_plane);
+        projection_matrix.M[0][0] = f / aspect;
+        projection_matrix.M[1][1] = f;
 
-		projection_matrix.M[2][3] = 2*(far_plane * near_plane) / (near_plane - far_plane);
-		projection_matrix.M[3][2] = -1;
-		projection_matrix.M[3][3] = 0; // as it initially is set as a identity matrix we should rectify the 1 -> 0
+        projection_matrix.M[2][2] = (far_plane + near_plane) / (near_plane - far_plane);
+        projection_matrix.M[2][3] = (2.0f * far_plane * near_plane) / (near_plane - far_plane);
 
-		////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		//CAL FER LA MULTIPLICACIÓ ENTRE Mpers = Morto * P (ON P ES MATRIU AUXILIAR AQUESTA D'AQUI A DALT LITERALMENTT)
-		////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        projection_matrix.M[3][2] = -1.0f;
+        projection_matrix.M[3][3] = 0.0f;
+    }
+    else
+    {
+        projection_matrix.M[0][0] = 2.f / (right - left);
+        projection_matrix.M[1][1] = 2.f / (top - bottom);
+        projection_matrix.M[2][2] = -2.f / (far_plane - near_plane);
 
-	}
-	else if (type == ORTHOGRAPHIC) {
-		projection_matrix.M[0][0] = 2 / (right - left);
-		projection_matrix.M[1][1] = 2 / (top - bottom);
-		projection_matrix.M[2][2] = -2 / (far_plane - near_plane);
+        projection_matrix.M[3][0] = -(right + left) / (right - left);
+        projection_matrix.M[3][1] = -(top + bottom) / (top - bottom);
+        projection_matrix.M[3][2] = -(far_plane + near_plane) / (far_plane - near_plane);
+        projection_matrix.M[3][3] = 1.f;
+    }
 
-		projection_matrix.M[0][3] = - (right + left) / (right - left);
-		projection_matrix.M[1][3] = - (top + bottom) / (top - bottom);
-		projection_matrix.M[2][3] = - (far_plane + near_plane) / (far_plane - near_plane);
-
-	} 
-
-	UpdateViewProjectionMatrix();
+    UpdateViewProjectionMatrix();
 }
+
 
 void Camera::UpdateViewProjectionMatrix()
 {

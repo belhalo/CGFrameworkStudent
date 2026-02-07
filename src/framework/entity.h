@@ -19,20 +19,10 @@ private:
 
     Mesh* mesh;             // stores the geometry information of the object itself
     Matrix44 modelMatrix;   // it defines the transformations of the object; such as the translation, location, rotation, scale...
-
-public: 
-    // entity constructor init
-    Entity() {
-        this->mesh = NULL;
-        modelMatrix.SetIdentity();
-    }
-
-    // entity constructor assigning
-    void EntityAdd(Mesh* m, Matrix44 M) {
-        this->mesh = m;
-        this->modelMatrix = M;
-    }
-
+    Matrix44 baseMatrix;
+public:
+    // entity constructor
+    void EntityAdd(Mesh* m, const Matrix44& M);
     void Render(Image* framebuffer, Camera* camera, const Color& c);
     void Update(float seconds_elapsed);
     bool isInsideClip(Vector3 vect);

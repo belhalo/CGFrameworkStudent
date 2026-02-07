@@ -25,6 +25,27 @@ Application::~Application()
 
 }
 
+static inline float Clamp(float v, float a, float b) { return std::max(a, std::min(v, b)); }
+
+// call after changing orbitYaw/orbitPitch/orbitDist or after moving center
+void Application::UpdateCameraFromOrbit()
+{
+    // clamp pitch to avoid flipping
+    orbitPitch = Clamp(orbitPitch, -1.5f, 1.5f);
+    orbitDist  = std::max(0.1f, orbitDist);
+
+    // spherical coords around center
+    float cp = cosf(orbitPitch);
+    Vector3 offset;
+    offset.x = orbitDist * cp * cosf(orbitYaw);
+    offset.y = orbitDist * sinf(orbitPitch);
+    offset.z = orbitDist * cp * sinf(orbitYaw);
+
+    cam->up = Vector3(0,1,0);
+    cam->eye = cam->center + offset;
+    cam->UpdateViewMatrix();
+}
+
 void Application::Init(void)
 {
 	std::cout << "Initiating app..." << std::endl;
@@ -37,15 +58,27 @@ void Application::Init(void)
     this->cam = new Camera(); // create a new camera, but as we are in the init the only create it once
     float aspect = (float) window_width / (float) window_height;
 
-    // setting the camera attributes
-    cam->eye = Vector3(1, 0.3, 0.5);
-    cam->center = Vector3(0.1, 0.2, 0.8); 
-    cam->up = Vector3(0, 1, 0);
 
-    cam->ORTHOGRAPHIC;
-    cam->UpdateViewMatrix();
-    //cam->SetPerspective();
+    // set camera pose (ONLY ONCE)
+    cam->LookAt(
+        Vector3(1.0f, 0.3f, 0.5f),
+        Vector3(0.1f, 0.2f, 0.8f),
+        Vector3(0.0f, 1.0f, 0.0f)
+    );
 
+    // set projection
+    cam->SetPerspective(60.0f, aspect, 0.1f, 100.0f);
+
+    // initialise orbit from current eye/center (AFTER LookAt)
+    Vector3 d = cam->eye - cam->center;
+    orbitDist = d.Length();
+    orbitYaw   = atan2f(d.z, d.x);
+    orbitPitch = asinf(d.y / std::max(orbitDist, 0.0001f));
+
+    // yaw from x/z, pitch from y
+    orbitYaw   = atan2f(d.z, d.x);
+    orbitPitch = asinf(d.y / std::max(orbitDist, 0.0001f));
+    
     // download the mesh from the resourses
     Mesh* m = new Mesh();
     if (!(m->LoadOBJ("meshes/lee.obj"))) {
@@ -63,161 +96,12 @@ void Application::Init(void)
         this->entities.emplace_back(e);
 
     }
-
-	// init the toolbar
-	Image clear;
-	if (clear.LoadPNG("images/clear.png", true) == false) {
-		std::cout << "Image not found!" << std::endl;
-	}
-	framebuffer.DrawImage(clear, 15, 10);
-
-	Image load;
-	if (load.LoadPNG("images/load.png", true) == false) {
-		std::cout << "Image not found!" << std::endl;
-	}
-	framebuffer.DrawImage(load, 55, 10);
-
-	Image save;
-	if (save.LoadPNG("images/save.png", true) == false) {
-		std::cout << "Image not found!" << std::endl;
-	}
-	framebuffer.DrawImage(save, 95, 10);
-
-	Image eraser;
-	if (eraser.LoadPNG("images/eraser.png", true) == false) {
-		std::cout << "Image not found!" << std::endl;
-	}
-	framebuffer.DrawImage(eraser, 135, 10);
-
-	Image line;
-	if (line.LoadPNG("images/line.png", true) == false) {
-		std::cout << "Image not found!" << std::endl;
-	}
-	framebuffer.DrawImage(line, 175, 10);
-
-	Image rectangle;
-	if (rectangle.LoadPNG("images/rectangle.png", true) == false) {
-		std::cout << "Image not found!" << std::endl;
-	}
-	framebuffer.DrawImage(rectangle, 215, 10);
-
-	Image circle;
-	if (circle.LoadPNG("images/circle.png", true) == false) {
-		std::cout << "Image not found!" << std::endl;
-	}
-	framebuffer.DrawImage(circle, 255, 10);
-
-	Image triangle;
-	if (triangle.LoadPNG("images/triangle.png", true) == false) {
-		std::cout << "Image not found!" << std::endl;
-	}
-	framebuffer.DrawImage(triangle, 295, 10);
-
-	Image black;
-	if (black.LoadPNG("images/black.png", true) == false) {
-		std::cout << "Image not found!" << std::endl;
-	}
-	framebuffer.DrawImage(black, 335, 10);
-
-	Image white;
-	if (white.LoadPNG("images/white.png", true) == false) {
-		std::cout << "Image not found!" << std::endl;
-	}
-	framebuffer.DrawImage(white, 375, 10);
-
-	Image pink;
-	if (pink.LoadPNG("images/pink.png", true) == false) {
-		std::cout << "Image not found!" << std::endl;
-	}
-	framebuffer.DrawImage(pink, 415, 10);
-
-	Image yellow;
-	if (yellow.LoadPNG("images/yellow.png", true) == false) {
-		std::cout << "Image not found!" << std::endl;
-	}
-	framebuffer.DrawImage(yellow, 455, 10);
-
-	Image red;
-	if (red.LoadPNG("images/red.png", true) == false) {
-		std::cout << "Image not found!" << std::endl;
-	}
-	framebuffer.DrawImage(red, 495, 10);
-
-	Image blue;
-	if (blue.LoadPNG("images/blue.png", true) == false) {
-		std::cout << "Image not found!" << std::endl;
-	}
-	framebuffer.DrawImage(blue, 535, 10);
-
-	Image cyan;
-	if (cyan.LoadPNG("images/cyan.png", true) == false) {
-		std::cout << "Image not found!" << std::endl;
-	}
-	framebuffer.DrawImage(cyan, 575, 10);
-    
-    buttons.clear();
-
-        auto loadIcon = [&](const char* path) {
-            Image img;
-            if (!img.LoadPNG(path, true))
-                std::cout << "Image not found: " << path << std::endl;
-            return img;
-        };
-
-        // NOTE: use forward slashes (works on Mac + Windows)
-        Image clearI = loadIcon("images/clear.png");
-        Image loadI  = loadIcon("images/load.png");
-        Image saveI  = loadIcon("images/save.png");
-        Image eraserI= loadIcon("images/eraser.png");
-        Image penI   = loadIcon("images/pencil.png");
-        Image lineI  = loadIcon("images/line.png");
-        Image rectI  = loadIcon("images/rectangle.png");
-        Image triI   = loadIcon("images/triangle.png");
-        Image cirI   = loadIcon("images/circle.png");
-        Image blackI = loadIcon("images/black.png");
-        Image whiteI = loadIcon("images/white.png");
-        Image pinkI  = loadIcon("images/pink.png");
-        Image yellowI= loadIcon("images/yellow.png");
-        Image redI   = loadIcon("images/red.png");
-        Image blueI  = loadIcon("images/blue.png");
-        Image cyanI  = loadIcon("images/cyan.png");
-        Image greenI = loadIcon("images/green.png");
-
-        int y = 10;        // toolbar margin from bottom
-        int x = 15;        // starting x
-        int step = 40;     // spacing
-
-        buttons.emplace_back(ButtonType::Clear,     Vector2(x, y), clearI);  x += step;
-        buttons.emplace_back(ButtonType::Load,      Vector2(x, y), loadI);   x += step;
-        buttons.emplace_back(ButtonType::Save,      Vector2(x, y), saveI);   x += step;
-        buttons.emplace_back(ButtonType::Eraser,    Vector2(x, y), eraserI); x += step;
-        buttons.emplace_back(ButtonType::Pencil,    Vector2(x, y), penI);    x += step;
-        buttons.emplace_back(ButtonType::Line,      Vector2(x, y), lineI);   x += step;
-        buttons.emplace_back(ButtonType::Rectangle, Vector2(x, y), rectI);   x += step;
-        buttons.emplace_back(ButtonType::Triangle,  Vector2(x, y), triI);    x += step;
-        buttons.emplace_back(ButtonType::Circle,    Vector2(x, y), cirI);    x += step;
-
-        // colors
-        buttons.emplace_back(ButtonType::ColorBlack, Vector2(x, y), blackI);  x += step;
-        buttons.emplace_back(ButtonType::ColorWhite, Vector2(x, y), whiteI);  x += step;
-        buttons.emplace_back(ButtonType::ColorPink,  Vector2(x, y), pinkI);   x += step;
-        buttons.emplace_back(ButtonType::ColorYellow,Vector2(x, y), yellowI); x += step;
-        buttons.emplace_back(ButtonType::ColorRed,   Vector2(x, y), redI);    x += step;
-        buttons.emplace_back(ButtonType::ColorBlue,  Vector2(x, y), blueI);   x += step;
-        buttons.emplace_back(ButtonType::ColorCyan,  Vector2(x, y), cyanI);   x += step;
-        buttons.emplace_back(ButtonType::ColorGreen, Vector2(x, y), greenI);  x += step;
-
-        // draw toolbar icons once 
-        for (const auto& b : buttons) {
-            framebuffer.DrawImage(b.icon, (int)b.pos.x, (int)b.pos.y);
-        }
-
-        particleSys.Init(); 
 }
 
 // Render one frame
 void Application::Render(void)
 {
+    framebuffer.Fill(Color::BLACK);   // clear every frame
     // create the entity and assign the loaded mesh
     for (int i = 0; i < entities.size(); i++) {
         // for default the color will be white
@@ -246,12 +130,15 @@ void Application::Render(void)
 // Called after render
 void Application::Update(float seconds_elapsed)
 {
-    std::vector<Entity> ent;
+    // lab2 animations
     if (mode == MODE_ANIMATION)
     {
-        particleSys.Update(seconds_elapsed);
+        for (auto* e : entities)
+            e->Update(seconds_elapsed);
     }
 }
+
+
 
 // helper to convert coords from mouse to canvas (since SDL and SetPixel use inverted from one another)
 // mx,my come from SDL events (origin top left)
@@ -278,111 +165,87 @@ void Application::OnKeyPressed(SDL_KeyboardEvent event)
 {
     switch (event.keysym.sym)
     {
-        case SDLK_ESCAPE:
-            exit(0);
-            break;
+        case SDLK_ESCAPE: exit(0); break;
 
-        // "1" -> Paint
+        // Lab2 scene modes
         case SDLK_1:
             mode = MODE_PAINT;
-            std::cout << "Mode: Paint\n";
-            break;
-        // "2" -> animation
-        case SDLK_2:
-            mode = MODE_ANIMATION;
-            std::cout << "Mode: Animation\n";
-            break;
-        // "F" -> Fill Shapes toggle
-        case SDLK_f:
-            fillShapes = !fillShapes;
-            std::cout << "FillShapes: " << (fillShapes ? "ON" : "OFF") << std::endl;
-            break;
-        // "+" -> Increase border width
-        // (on mac keyboards '+' is SHIFT+'=' so SDLK_EQUALS is common)
-        case SDLK_PLUS:
-        case SDLK_EQUALS:
-            borderWidth++;
-            if (borderWidth > maxBorderWidth) borderWidth = maxBorderWidth;
-            std::cout << "BorderWidth: " << borderWidth << std::endl;
+            std::cout << "Mode: Single entity\n";
             break;
 
-        // "-" -> Decrease border width
-        case SDLK_MINUS:
-            borderWidth--;
-            if (borderWidth < minBorderWidth) borderWidth = minBorderWidth;
-            std::cout << "BorderWidth: " << borderWidth << std::endl;
+        case SDLK_2:
+            mode = MODE_ANIMATION;
+            std::cout << "Mode: Multiple animated entities\n";
             break;
+
+        // Lab2 camera property selection
+        case SDLK_n:
+            currentProp = PROP_NEAR;
+            std::cout << "Current property: NEAR\n";
+            break;
+
+        case SDLK_f:
+            currentProp = PROP_FAR;
+            std::cout << "Current property: FAR\n";
+            break;
+
+        case SDLK_v:
+            currentProp = PROP_FOV;
+            std::cout << "Current property: FOV\n";
+            break;
+
+        // increase/decrease selected property
+        case SDLK_PLUS:
+        case SDLK_EQUALS: // '+' on many keyboards is shift+'=' (eg mac)
+        {
+            if (!cam) break;
+
+            if (currentProp == PROP_NEAR)
+                cam->near_plane = std::min(cam->near_plane * 1.1f, cam->far_plane - 0.01f);
+            else if (currentProp == PROP_FAR)
+                cam->far_plane = cam->far_plane * 1.1f;
+            else // FOV
+                cam->fov = std::min(cam->fov + 2.0f, 170.0f);
+
+            cam->UpdateProjectionMatrix();
+            break;
+        }
+
+        case SDLK_MINUS:
+        {
+            if (!cam) break;
+
+            if (currentProp == PROP_NEAR)
+                cam->near_plane = std::max(cam->near_plane / 1.1f, 0.001f);
+            else if (currentProp == PROP_FAR)
+                cam->far_plane = std::max(cam->far_plane / 1.1f, cam->near_plane + 0.01f);
+            else // FOV
+                cam->fov = std::max(cam->fov - 2.0f, 5.0f);
+
+            cam->UpdateProjectionMatrix();
+            break;
+        }
 
         default:
             break;
     }
 }
 
-
-void Application::OnMouseButtonDown( SDL_MouseButtonEvent event )
+void Application::OnMouseButtonDown(SDL_MouseButtonEvent event)
 {
-    if (mode == MODE_ANIMATION) return;
-    if (event.button != SDL_BUTTON_LEFT) return;
-
-    Vector2 m = MouseToCanvas(event.x, event.y); // bottom-left coords
-
-    // if click is inside toolbar region (bottom strip), treat as UI click
-    if (m.y < 50)
+    // Lab2 camera controls should work regardless of paint mode (assignment wants camera always controllable)
+    if (event.button == SDL_BUTTON_LEFT)
     {
-        for (const auto& b : buttons)
-        {
-            if (b.IsMouseInside(m))
-            {
-                HandleButton(b.type);
-                return;
-            }
-        }
+        orbiting = true;
         return;
     }
-    mouse_position = MouseToCanvas(event.x, event.y);   // store coords of mouse position
-
-    if (currentTool == TOOL_PENCIL) {
-        pencilDown = true;
-        lastPencilPos = mouse_position;
-        return;
-    }
-    
-    if (currentTool == TOOL_ERASER)
+    if (event.button == SDL_BUTTON_RIGHT)
     {
-        isStrokeDown = true;
-        lastStrokePos = mouse_position;
-
-        // apply one dab so click-without-moving erases/draws
-        for (int oy = -eraserRadius; oy <= eraserRadius; ++oy)
-        for (int ox = -eraserRadius; ox <= eraserRadius; ++ox)
-        {
-            int x = (int)mouse_position.x + ox;
-            int y = (int)mouse_position.y + oy;
-            if (x >= 0 && x < (int)framebuffer.width && y >= 50 && y < (int)framebuffer.height) {
-                framebuffer.SetPixel((unsigned)x, (unsigned)y, Color::BLACK);
-            }
-        }
+        panning = true;
         return;
-    }
-    
-    // lines, rectangles and circles build
-    if (currentTool == TOOL_LINE || currentTool == TOOL_RECT || currentTool == TOOL_CIRCLE) {
-        isDragging = true;  // lines and rects work based on drag
-        startPos = currentPos = mouse_position;     // set origin point
-    } else if (currentTool == TOOL_TRIANGLE){   // triangle build
-        if (triClicks == 0) {           // first point
-            t0 = mouse_position;
-            triClicks = 1;
-        } else if (triClicks == 1) {    // second point
-            t1 = mouse_position;
-            triClicks = 2;
-        } else {                        // third point
-            Vector2 t2 = mouse_position;
-            framebuffer.DrawTriangle(t0, t1, t2, borderColor, fillShapes, fillColor);   // build triangle
-            triClicks = 0;  // reset counter since build done
-        }
     }
 }
+
 
 // button handler
 void Application::HandleButton(ButtonType t)
@@ -467,114 +330,56 @@ void Application::HandleButton(ButtonType t)
 }
 
 
-void Application::OnMouseButtonUp( SDL_MouseButtonEvent event )
+void Application::OnMouseButtonUp(SDL_MouseButtonEvent event)
 {
-    if (mode == MODE_ANIMATION) return;
-    if (event.button != SDL_BUTTON_LEFT) return;
-    
-    mouse_position = MouseToCanvas(event.x, event.y);
-    
-    if (currentTool == TOOL_PENCIL) {
-        pencilDown = false;
-        return;
-    }
-    
-    if (currentTool == TOOL_ERASER) {
-        isStrokeDown = false;
-        return;
-    }
-    
-    if (currentTool == TOOL_CIRCLE) {
-        isDragging = false;
-    }
-
-    if (!isDragging) return;
-    isDragging = false;
-    if (event.y < 50) return;
-    
-    currentPos = mouse_position;
-    
-    if (currentTool == TOOL_LINE) {         // draw line
-        framebuffer.DrawLineDDA((int)startPos.x, (int)startPos.y, (int)currentPos.x, (int)currentPos.y, borderColor);
-    } else if (currentTool == TOOL_RECT) {  // draw rectangle
-        int x, y, w, h;
-        DragToRect(startPos, currentPos, x, y, w, h);   // convert into coords and sizes values
-        framebuffer.DrawRect(x, y, w, h, borderColor, borderWidth, fillShapes, fillColor);
-    }
+    if (event.button == SDL_BUTTON_LEFT)  orbiting = false;
+    if (event.button == SDL_BUTTON_RIGHT) panning  = false;
 }
+
 
 void Application::OnMouseMove(SDL_MouseButtonEvent event)
 {
-    if (mode == MODE_ANIMATION) return;
-    mouse_delta = Vector2((float)event.x, (float)(-event.y));   // flip y sign
-    mouse_position = MouseToCanvas(event.x, event.y);
-    
-    // don't draw on toolbar
-    if (mouse_position.y < 50) return;
-    // Pencil: draw small segments following the mouse
-    if (currentTool == TOOL_PENCIL && pencilDown)
+    Vector2 newPos((float)event.x, (float)event.y);
+    Vector2 prevPos((float)mouse_position.x, (float)(window_height - 1 - mouse_position.y));
+
+    Vector2 canvasNow = MouseToCanvas(event.x, event.y);
+    Vector2 delta = canvasNow - mouse_position;
+    mouse_position = canvasNow;
+
+    // orbit (left drag)
+    if (orbiting)
     {
-        Vector2 cur = mouse_position;
-
-        framebuffer.DrawLineDDA(
-            (int)lastPencilPos.x, (int)lastPencilPos.y,
-            (int)cur.x,          (int)cur.y,
-            borderColor
-        );
-
-        lastPencilPos = cur;
+        orbitYaw   += delta.x * orbitSpeed;
+        orbitPitch += delta.y * orbitSpeed;
+        UpdateCameraFromOrbit();
         return;
     }
-    
-    if (currentTool == TOOL_ERASER && isStrokeDown) {
-        Vector2 cur = mouse_position;
-        // erase along the path with a line
-        framebuffer.DrawLineDDA((int)lastStrokePos.x, (int)lastStrokePos.y,
-                                (int)cur.x,          (int)cur.y,
-                                Color::BLACK);
-        
-        // make it thick by stamping a square around the cursor     <--- COULD MAKE IT A CIRCLE
-        for (int oy = -eraserRadius; oy <= eraserRadius; ++oy)
-            for (int ox = -eraserRadius; ox <= eraserRadius; ++ox)
-            {
-                int x = (int)cur.x + ox;
-                int y = (int)cur.y + oy;
-                if (x >= 0 && x < (int)framebuffer.width && y >= 50 && y < (int)framebuffer.height) {
-                    framebuffer.SetPixel((unsigned)x, (unsigned)y, Color::BLACK);
-                }
-            }
-        lastStrokePos = cur;
+
+    // pan target (right drag)
+    if (panning)
+    {
+        // move centre along camera right/up
+        Vector3 forward = (cam->center - cam->eye).Normalize();
+        Vector3 right   = forward.Cross(cam->up).Normalize();
+        Vector3 upMove  = right.Cross(forward).Normalize();
+
+        cam->center = cam->center + right * (delta.x * panSpeed) + upMove * (delta.y * panSpeed);
+        UpdateCameraFromOrbit(); // recompute eye from orbitDist/yaw/pitch around new center
         return;
-    }
-    
-    if (!isDragging) return;
-    currentPos = mouse_position;
-
-    if (currentTool == TOOL_LINE) {
-        framebuffer.DrawLineDDA((int)startPos.x, (int)startPos.y, (int)currentPos.x, (int)currentPos.y, borderColor);  // draw line
-    } else if (currentTool == TOOL_RECT) {
-        int x, y, w, h; // origin and size      // cant figure out a way to omit toolbar for lines/rect
-        DragToRect(startPos, currentPos, x, y, w, h);   // turn into coords and sizes values
-        framebuffer.DrawRect(x, y, w, h, borderColor, borderWidth, fillShapes, fillColor);    // draw rectangle
-    } else if (currentTool == TOOL_CIRCLE) {
-        // compute dx, dy from center to mouse
-        float dx = currentPos.x - startPos.x;
-        float dy = currentPos.y - startPos.y;
-
-        // radius = euclidean distance
-        int radius = (int)std::sqrt(dx * dx + dy * dy);
-
-        // draw the circle
-        framebuffer.DrawCircle((int)startPos.x, (int)startPos.y, radius, borderColor, 1, fillShapes, fillColor);
     }
 }
 
 void Application::OnWheel(SDL_MouseWheelEvent event)
 {
-	float dy = event.preciseY;
+    float dy = event.preciseY;
 
-	// ...
+    // zoom, change orbit distance
+    orbitDist *= (1.0f - dy * 0.1f);
+    orbitDist = std::max(0.1f, orbitDist);
+
+    UpdateCameraFromOrbit();
 }
+
 
 void Application::OnFileChanged(const char* filename)
 { 

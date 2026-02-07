@@ -9,6 +9,8 @@
 #include "image.h"
 #include "button.h"
 #include "particleSystem.h"
+#include "camera.h"
+#include "entity.h"
 
 class Application
 {
@@ -68,7 +70,7 @@ public:
     
     Vector2 MouseToCanvas(int mx, int my) const;
     
-    // app mode
+    // app mode (from lab1)
     enum AppMode { MODE_PAINT, MODE_ANIMATION };
     AppMode mode = MODE_PAINT;
     
@@ -83,6 +85,26 @@ public:
 
 	// CPU Global framebuffer
 	Image framebuffer;
+
+    // Lab2 camera interactivity
+    enum CameraProperty { PROP_NEAR, PROP_FAR, PROP_FOV };
+    CameraProperty currentProp = PROP_FOV;
+
+    // orbit state
+    bool orbiting = false;   // left mouse drag
+    bool panning  = false;   // right mouse drag
+
+    float orbitYaw   = 0.0f; // radians
+    float orbitPitch = 0.0f; // radians
+    float orbitDist  = 3.0f; // distance eye-center
+
+    // sensitivities
+    float orbitSpeed = 0.005f;
+    float panSpeed   = 0.0025f;
+    float zoomSpeed  = 0.2f;
+
+    // helper
+    void UpdateCameraFromOrbit();
 
 	// Constructor and main methods
 	Application(const char* caption, int width, int height);

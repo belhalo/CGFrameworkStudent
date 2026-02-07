@@ -15,7 +15,7 @@ void Entity::Render(Image* framebuffer, Camera* camera, const Color& c) {
 
 	// get vertices from the mesh and iter throught them 
 	// notice that getVertices returns a list of 3D vectors
-	std::vector<Vector3> meshVertices = this->mesh->GetVertices();
+    const auto& meshVertices = this->mesh->GetVertices();
 	// we can go 3 by 3 because we are counting three vertices for each triangle
 	for (int i = 0; i < meshVertices.size(); i = i + 3) {
 		// as we want multiply each point of the mesh by the model matrix, firstly we have to isolated 
@@ -37,22 +37,22 @@ void Entity::Render(Image* framebuffer, Camera* camera, const Color& c) {
 		Vector3 vecClip2 = camera->ProjectVector(vecWorld2);
 
 		// make sure that all the vectors are inside the clip space
-		//if (isInsideClip(vecClip0) && isInsideClip(vecClip1) && isInsideClip(vecClip2)){
-			// map clip space [-1, 1] to Screen Space [pixels]
-			float screenX0 = (vecClip0.x + 1.0f) * 0.5f * framebuffer->width;
-			float screenY0 = (1.0f - (vecClip0.y + 1.0f) * 0.5f) * framebuffer->height;
+		{
+            // map clip space [-1, 1] to Screen Space [pixels]
+            // framebuffer origin is bottom-left
+            float screenX0 = (vecClip0.x * 0.5f + 0.5f) * (framebuffer->width  - 1);
+            float screenY0 = (vecClip0.y * 0.5f + 0.5f) * (framebuffer->height - 1);
 
-			float screenX1 = (vecClip1.x + 1.0f) * 0.5f * framebuffer->width;
-			float screenY1 = (1.0f - (vecClip1.y + 1.0f) * 0.5f) * framebuffer->height;
+            float screenX1 = (vecClip1.x * 0.5f + 0.5f) * (framebuffer->width  - 1);
+            float screenY1 = (vecClip1.y * 0.5f + 0.5f) * (framebuffer->height - 1);
 
-			float screenX2 = (vecClip2.x + 1.0f) * 0.5f * framebuffer->width;
-			float screenY2 = (1.0f - (vecClip2.y + 1.0f) * 0.5f) * framebuffer->height;
+            float screenX2 = (vecClip2.x * 0.5f + 0.5f) * (framebuffer->width  - 1);
+            float screenY2 = (vecClip2.y * 0.5f + 0.5f) * (framebuffer->height - 1);
 
-			// Now you have the pixel coordinates to draw!
-			framebuffer->DrawLineDDA(screenX0, screenY0, screenX1, screenY1, c);
-			framebuffer->DrawLineDDA(screenX1, screenY1, screenX2, screenY2, c);
-			framebuffer->DrawLineDDA(screenX2, screenY2, screenX0, screenY0, c);
-		//}
+            framebuffer->DrawLineDDA((int)screenX0, (int)screenY0, (int)screenX1, (int)screenY1, c);
+            framebuffer->DrawLineDDA((int)screenX1, (int)screenY1, (int)screenX2, (int)screenY2, c);
+            framebuffer->DrawLineDDA((int)screenX2, (int)screenY2, (int)screenX0, (int)screenY0, c);
+		}
 	}
 }
 
@@ -63,16 +63,21 @@ bool Entity::isInsideClip(Vector3 vect) {
 		&& (-1 < vect.z) && (vect.z < 1);
 }
 
-void Entity::Update(float seconds_elapsed){
-	this->modelMatrix.SetIdentity();
-
-	
-	// Definimos un ejemplo de transformación como puede ser rotar en el tiempo
-    float angle = seconds_elapsed * 125.0f; // Rotaciçon de  125 grados cada segundo
-	float angleRad = angle * (2 * PI) / (360.0f);
-
-    Matrix44 rotationMatrix;
-	rotationMatrix.MakeRotationMatrix(angleRad, Vector3(0, 1, 0));
-   
-    modelMatrix = rotationMatrix * modelMatrix; // Aplicamos la rotación al modelo
+void Entity::EntityAdd(Mesh* m, const Matrix44& M)
+{
+    mesh = m;
+    baseMatrix = M;
+    modelMatrix = M;
 }
+
+void Entity::Update(float seconds_elapsed)
+{
+    static float total = 0.f;
+    total += seconds_elapsed;
+
+    Matrix44 R;
+    R.MakeRotationMatrix(total, Vector3(0,1,0)); // radians
+
+    modelMatrix = R * baseMatrix; // rotate but keep original translation
+}
+
