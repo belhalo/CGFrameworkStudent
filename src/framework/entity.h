@@ -9,9 +9,31 @@
 #include "mesh.h"
 #include "camera.h"
 #include "main/includes.h"
-#include "mesh.h"
 
+// entity class represents an object and it includes mesh and model matrix
 class Entity {
-    Mesh * mesh = new Mesh();
-    mesh->loadOBJ("meshes/lee.obj");
+private:
+    // we declare mesh as a pointer because if we need to load more than one time the same mesh
+    // at the memory we will not have x copies of the same mesh, in instead, we will have x number of the same mesh
+    // but at the locally all of the them will be pointed with the same pointer 
+
+    Mesh* mesh;             // stores the geometry information of the object itself
+    Matrix44 modelMatrix;   // it defines the transformations of the object; such as the translation, location, rotation, scale...
+
+public: 
+    // entity constructor init
+    Entity() {
+        this->mesh = NULL;
+        modelMatrix.SetIdentity();
+    }
+
+    // entity constructor assigning
+    void EntityAdd(Mesh* m, Matrix44 M) {
+        this->mesh = m;
+        this->modelMatrix = M;
+    }
+
+    void Render(Image* framebuffer, Camera* camera, const Color& c);
+    void Update(float seconds_elapsed);
+    bool isInsideClip(Vector3 vect);
 };

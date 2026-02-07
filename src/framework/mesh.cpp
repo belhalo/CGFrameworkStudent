@@ -8,6 +8,7 @@
 
 Mesh::Mesh()
 {
+
 }
 
 void Mesh::Clear()

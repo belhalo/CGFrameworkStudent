@@ -17,12 +17,17 @@ public:
     std::vector<Button> buttons;
     
 	// Window
-
 	SDL_Window* window = nullptr;
 	int window_width;
 	int window_height;
 
 	float time;
+
+	// Camera
+	Camera* cam; // we create a general camera
+
+	// Object
+	std::vector<Entity*> entities; // we create a list of entities to control all of them in the scene
 
 	// Particle
 	ParticleSystem particleSys;
