@@ -15,9 +15,6 @@
 class Application
 {
 public:
-    
-    std::vector<Button> buttons;
-    
 	// Window
 	SDL_Window* window = nullptr;
 	int window_width;
@@ -28,83 +25,37 @@ public:
 	// Camera
 	Camera* cam; // we create a general camera
 
-	// Object
+	// Scene Objects
 	std::vector<Entity*> entities; // we create a list of entities to control all of them in the scene
 
-	// Particle
-	ParticleSystem particleSys;
-
 	// Input
-	const Uint8* keystate;
-	int mouse_state; // Tells which buttons are pressed
+	const Uint8* keystate = nullptr;
+	int mouse_state = 0; // Tells which buttons are pressed
 	Vector2 mouse_position; // Last mouse position
 	Vector2 mouse_delta; // Mouse movement in the last frame
+    
+    //Lab2 Required interactivity
+    enum DrawMode { DRAW_SINGLE, DRAW_MULTI };
+    DrawMode drawMode = DRAW_SINGLE;
 
-	void OnKeyPressed(SDL_KeyboardEvent event);
-	void OnMouseButtonDown(SDL_MouseButtonEvent event);
-	void OnMouseButtonUp(SDL_MouseButtonEvent event);
-	void OnMouseMove(SDL_MouseButtonEvent event);
-	void OnWheel(SDL_MouseWheelEvent event);
-	void OnFileChanged(const char* filename);
-    
-    void HandleButton(ButtonType t);
-    
-    // Mouse position/buttons handling
-    enum Tool { TOOL_LINE, TOOL_RECT, TOOL_TRIANGLE, TOOL_ERASER, TOOL_CIRCLE, TOOL_PENCIL};
-    Tool currentTool = TOOL_PENCIL;
-
-    int borderWidth = 1;
-    const int minBorderWidth = 1;
-    const int maxBorderWidth = 20;
-    
-    Color borderColor = Color::BLACK;
-    Color fillColor   = Color::BLACK;
-    bool  fillShapes  = true;
-
-    bool isDragging = false;
-    Vector2 startPos;
-    Vector2 currentPos;
-
-    int triClicks = 0;
-    Vector2 t0, t1;
-    
-    Vector2 MouseToCanvas(int mx, int my) const;
-    
-    // app mode (from lab1)
-    enum AppMode { MODE_PAINT, MODE_ANIMATION };
-    AppMode mode = MODE_PAINT;
-    
-    // pencil tool
-    bool pencilDown = false;
-    Vector2 lastPencilPos;
-    
-    // eraser tool
-    bool isStrokeDown = false;
-    Vector2 lastStrokePos;
-    int eraserRadius = 8; 
-
-	// CPU Global framebuffer
-	Image framebuffer;
-
-    // Lab2 camera interactivity
     enum CameraProperty { PROP_NEAR, PROP_FAR, PROP_FOV };
     CameraProperty currentProp = PROP_FOV;
 
-    // orbit state
-    bool orbiting = false;   // left mouse drag
-    bool panning  = false;   // right mouse drag
-
-    float orbitYaw   = 0.0f; // radians
-    float orbitPitch = 0.0f; // radians
-    float orbitDist  = 3.0f; // distance eye-center
+    // orbit camera state
+    bool orbiting = false;          // left drag
+    float orbitYaw = 0.f;           // radians
+    float orbitPitch = 0.f;         // radians
+    float orbitDist = 3.f;          // distance from center
 
     // sensitivities
     float orbitSpeed = 0.005f;
-    float panSpeed   = 0.0025f;
     float zoomSpeed  = 0.2f;
 
     // helper
     void UpdateCameraFromOrbit();
+
+    // CPU framebuffer
+    Image framebuffer;
 
 	// Constructor and main methods
 	Application(const char* caption, int width, int height);
@@ -113,20 +64,34 @@ public:
 	void Init( void );
 	void Render( void );
 	void Update( float dt );
+    
+    void OnKeyPressed(SDL_KeyboardEvent event);
+    void OnMouseButtonDown(SDL_MouseButtonEvent event);
+    void OnMouseButtonUp(SDL_MouseButtonEvent event);
+    void OnMouseMove(SDL_MouseButtonEvent event);
+    void OnWheel(SDL_MouseWheelEvent event);
+    void OnFileChanged(const char* filename);
+    
+    // Window resize hook
+    void SetWindowSize(int width, int height)
+    {
+        glViewport(0, 0, width, height);
+        window_width = width;
+        window_height = height;
+        framebuffer.Resize(width, height);
 
-	// Other methods to control the app
-	void SetWindowSize(int width, int height) {
-		glViewport( 0,0, width, height );
-		this->window_width = width;
-		this->window_height = height;
-		this->framebuffer.Resize(width, height);
-	}
+        if (cam)
+        {
+            float aspect = (float)window_width / (float)window_height;
+            cam->SetPerspective(cam->fov, aspect, cam->near_plane, cam->far_plane);
+        }
+    }
 
-	Vector2 GetWindowSize()
-	{
-		int w,h;
-		SDL_GetWindowSize(window,&w,&h);
-		return Vector2(float(w), float(h));
-	}
+    Vector2 GetWindowSize()
+    {
+        int w, h;
+        SDL_GetWindowSize(window, &w, &h);
+        return Vector2((float)w, (float)h);
+    }
 };
 
