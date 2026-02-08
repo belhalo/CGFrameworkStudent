@@ -22,40 +22,47 @@ Application::Application(const char* caption, int width, int height)
 
 Application::~Application()
 {
-
+    for (auto* e : entities) delete e;
+    entities.clear();
+    delete cam;
+    cam = nullptr;
 }
 
-static inline float Clamp(float v, float a, float b) { return std::max(a, std::min(v, b)); }
+// small clamp helper
+static inline float Clamp(float v, float a, float b)
+{
+    return std::max(a, std::min(v, b));
+}
 
 // call after changing orbitYaw/orbitPitch/orbitDist or after moving center
 void Application::UpdateCameraFromOrbit()
 {
-    // clamp pitch to avoid flipping
+    if (!cam) return;
+
     orbitPitch = Clamp(orbitPitch, -1.5f, 1.5f);
     orbitDist  = std::max(0.1f, orbitDist);
 
-    // spherical coords around center
     float cp = cosf(orbitPitch);
+
     Vector3 offset;
     offset.x = orbitDist * cp * cosf(orbitYaw);
     offset.y = orbitDist * sinf(orbitPitch);
     offset.z = orbitDist * cp * sinf(orbitYaw);
 
-    cam->up = Vector3(0,1,0);
+    cam->up  = Vector3(0, 1, 0);
     cam->eye = cam->center + offset;
+
     cam->UpdateViewMatrix();
 }
 
 void Application::Init(void)
 {
 	std::cout << "Initiating app..." << std::endl;
-
-	// init the window colours
-	framebuffer.Fill(Color::BLACK);
-	framebuffer.DrawRect(0, 0, 1280, 50, Color::GRAY, 0, true, Color::GRAY);
+    // clear framebuffer once
+    framebuffer.Fill(Color::BLACK);
 
     // init the camera
-    this->cam = new Camera(); // create a new camera, but as we are in the init the only create it once
+    cam = new Camera(); // create a new camera, but as we are in the init the only create it once
     float aspect = (float) window_width / (float) window_height;
 
 
@@ -74,155 +81,149 @@ void Application::Init(void)
     orbitDist = d.Length();
     orbitYaw   = atan2f(d.z, d.x);
     orbitPitch = asinf(d.y / std::max(orbitDist, 0.0001f));
-
-    // yaw from x/z, pitch from y
-    orbitYaw   = atan2f(d.z, d.x);
-    orbitPitch = asinf(d.y / std::max(orbitDist, 0.0001f));
     
-    // download the mesh from the resourses
+    // download the mesh from the resources
     Mesh* m = new Mesh();
     if (!(m->LoadOBJ("meshes/lee.obj"))) {
         std::cout << "Object not found!" << std::endl;
     }
 
     // setting the meshes in the entity class
-    int numberEntities = 3; //modify it depending the number of entities we want 
-    for (int i = 0; i < numberEntities ; i++) {
-        Entity* e = new Entity;
-        Matrix44 matrix;
-        matrix.MakeTranslationMatrix(i * 2.0 - 2.0, 0, 0);
-  
-        e->EntityAdd(m, matrix);
-        this->entities.emplace_back(e);
-
+    int numberEntities = 3;         // >= 3 for mode 2
+    entities.reserve(numberEntities);
+    for (int i = 0; i < numberEntities; ++i)
+    {
+        Entity* e = new Entity();
+        Matrix44 M;
+        M.MakeTranslationMatrix(i * 2.0f - 2.0f, 0.0f, 0.0f); // spread out on X
+        e->EntityAdd(m, M);
+        entities.push_back(e);
     }
+    
+    drawMode = DRAW_SINGLE;
+    currentProp = PROP_FOV;
 }
 
 // Render one frame
 void Application::Render(void)
 {
-    framebuffer.Fill(Color::BLACK);   // clear every frame
-    // create the entity and assign the loaded mesh
-    for (int i = 0; i < entities.size(); i++) {
-        // for default the color will be white
-        Color choosenColor = Color::WHITE;
+    framebuffer.Fill(Color::BLACK);
 
-        // then, depending of the iteration we will painting in a color on in another -> to have variation
-        if (i == 1) choosenColor = Color::PURPLE;
-        else if (i == 2) choosenColor = Color::RED;
-
-        entities[i]->Render(&framebuffer, cam, choosenColor);
+    if (!cam || entities.empty())
+    {
+        framebuffer.Render();
+        return;
     }
-    
+
+    if (drawMode == DRAW_SINGLE)
+    {
+        entities[0]->Render(&framebuffer, cam, Color::WHITE);
+    }
+    else // DRAW_MULTI
+    {
+        for (int i = 0; i < (int)entities.size(); ++i)
+        {
+            Color c = Color::WHITE;
+            if (i == 1) c = Color::PURPLE;
+            else if (i == 2) c = Color::RED;
+
+            entities[i]->Render(&framebuffer, cam, c);
+        }
+    }
+
     framebuffer.Render();
-
-    //Matrix44 matrix = Matrix44();
-    //matrix.MakeScaleMatrix(1, -1, 1);
-    //matrix.MakeRotationMatrix(PI/6 , Vector3(1, 3, 1));
-    //matrix.MakeTranslationMatrix(0.5, -0.5, 0.5);
-
-    //e.EntityAdd(m1, matrix);
-    //e.Render(&framebuffer, c, Color::BLUE);
-    //e.Render(&framebuffer, c, Color::WHITE);
-    //e.Render(&framebuffer, c, Color::PURPLE);
 }
 
 // Called after render
 void Application::Update(float seconds_elapsed)
 {
-    // lab2 animations
-    if (mode == MODE_ANIMATION)
+    // Only animate in mode '2' (multiple animated entities)
+    if (drawMode == DRAW_MULTI)
     {
         for (auto* e : entities)
             e->Update(seconds_elapsed);
     }
 }
 
-
-
-// helper to convert coords from mouse to canvas (since SDL and SetPixel use inverted from one another)
-// mx,my come from SDL events (origin top left)
-// framebuffer expects origin bottom left
-Vector2 Application::MouseToCanvas(int mx, int my) const
-{
-    return Vector2((float)mx, (float)(window_height - 1 - my));
-}
-
-// helper for drag to rect
-static void DragToRect(const Vector2& a, const Vector2& b, int& x, int& y, int& w, int& h)
-{
-    x = (int)std::floor(std::min(a.x, b.x));
-    y = (int)std::floor(std::min(a.y, b.y));
-    w = (int)std::ceil (std::abs(b.x - a.x));
-    h = (int)std::ceil (std::abs(b.y - a.y));
-    if (w < 1) w = 1;
-    if (h < 1) h = 1;
-}
-
-
-//keyboard press event 
+// Keyboard press event
 void Application::OnKeyPressed(SDL_KeyboardEvent event)
 {
+    if (!cam) return;
+
     switch (event.keysym.sym)
     {
         case SDLK_ESCAPE: exit(0); break;
 
-        // Lab2 scene modes
+        // "1" -> Draw SINGLE entity
         case SDLK_1:
-            mode = MODE_PAINT;
-            std::cout << "Mode: Single entity\n";
+            drawMode = DRAW_SINGLE;
+            std::cout << "Mode: SINGLE\n";
             break;
 
+        // "2" -> Draw MULTIPLE animated entities
         case SDLK_2:
-            mode = MODE_ANIMATION;
-            std::cout << "Mode: Multiple animated entities\n";
+            drawMode = DRAW_MULTI;
+            std::cout << "Mode: MULTI\n";
             break;
 
-        // Lab2 camera property selection
+        // "N" -> select NEAR
         case SDLK_n:
             currentProp = PROP_NEAR;
-            std::cout << "Current property: NEAR\n";
+            std::cout << "Prop: NEAR\n";
             break;
 
+        // "F" -> select FAR
         case SDLK_f:
             currentProp = PROP_FAR;
-            std::cout << "Current property: FAR\n";
+            std::cout << "Prop: FAR\n";
             break;
 
+        // "V" -> select FOV
         case SDLK_v:
             currentProp = PROP_FOV;
-            std::cout << "Current property: FOV\n";
+            std::cout << "Prop: FOV\n";
             break;
 
-        // increase/decrease selected property
+        // "+" -> increase selected property
         case SDLK_PLUS:
-        case SDLK_EQUALS: // '+' on many keyboards is shift+'=' (eg mac)
+        case SDLK_EQUALS: // mac '+' is Shift+'='
         {
-            if (!cam) break;
-
             if (currentProp == PROP_NEAR)
-                cam->near_plane = std::min(cam->near_plane * 1.1f, cam->far_plane - 0.01f);
+            {
+                cam->near_plane = std::min(cam->near_plane + 0.05f, cam->far_plane - 0.05f);
+            }
             else if (currentProp == PROP_FAR)
-                cam->far_plane = cam->far_plane * 1.1f;
-            else // FOV
-                cam->fov = std::min(cam->fov + 2.0f, 170.0f);
+            {
+                cam->far_plane = cam->far_plane + 0.5f;
+            }
+            else // PROP_FOV
+            {
+                cam->fov = std::min(cam->fov + 2.0f, 120.0f);
+            }
 
-            cam->UpdateProjectionMatrix();
+            float aspect = (float)window_width / (float)window_height;
+            cam->SetPerspective(cam->fov, aspect, cam->near_plane, cam->far_plane);
             break;
         }
 
+        // "-" -> decrease selected property
         case SDLK_MINUS:
         {
-            if (!cam) break;
-
             if (currentProp == PROP_NEAR)
-                cam->near_plane = std::max(cam->near_plane / 1.1f, 0.001f);
+            {
+                cam->near_plane = std::max(cam->near_plane - 0.05f, 0.01f);
+            }
             else if (currentProp == PROP_FAR)
-                cam->far_plane = std::max(cam->far_plane / 1.1f, cam->near_plane + 0.01f);
-            else // FOV
-                cam->fov = std::max(cam->fov - 2.0f, 5.0f);
+            {
+                cam->far_plane = std::max(cam->far_plane - 0.5f, cam->near_plane + 0.05f);
+            }
+            else // PROP_FOV
+            {
+                cam->fov = std::max(cam->fov - 2.0f, 10.0f);
+            }
 
-            cam->UpdateProjectionMatrix();
+            float aspect = (float)window_width / (float)window_height;
+            cam->SetPerspective(cam->fov, aspect, cam->near_plane, cam->far_plane);
             break;
         }
 
@@ -231,157 +232,70 @@ void Application::OnKeyPressed(SDL_KeyboardEvent event)
     }
 }
 
+
 void Application::OnMouseButtonDown(SDL_MouseButtonEvent event)
 {
-    // Lab2 camera controls should work regardless of paint mode (assignment wants camera always controllable)
+    if (!cam) return;
+
     if (event.button == SDL_BUTTON_LEFT)
     {
         orbiting = true;
-        return;
     }
-    if (event.button == SDL_BUTTON_RIGHT)
+    else if (event.button == SDL_BUTTON_RIGHT)
     {
-        panning = true;
-        return;
-    }
-}
+        // Right click: set camera target (center)
+        float nx = (2.0f * event.x) / (float)window_width - 1.0f;
+        float ny = 1.0f - (2.0f * event.y) / (float)window_height;
 
+        cam->center = Vector3(nx, ny, cam->center.z);
+        cam->UpdateViewMatrix();
 
-// button handler
-void Application::HandleButton(ButtonType t)
-{
-    switch (t)
-    {
-        case ButtonType::Line:      currentTool = TOOL_LINE; break;
-        case ButtonType::Rectangle: currentTool = TOOL_RECT; break;
-        case ButtonType::Triangle:  currentTool = TOOL_TRIANGLE; triClicks = 0; break;
-        case ButtonType::Eraser:    currentTool = TOOL_ERASER; break;
-        case ButtonType::Circle:    currentTool = TOOL_CIRCLE; break;
-        case ButtonType::Pencil:    currentTool = TOOL_PENCIL; triClicks = 0; isDragging = false; break;
-
-        case ButtonType::ColorBlack: borderColor = Color::BLACK; fillColor = Color::BLACK; break;
-        case ButtonType::ColorWhite: borderColor = Color::WHITE; fillColor = Color::WHITE; break;
-        case ButtonType::ColorRed:   borderColor = Color::RED;   fillColor = Color::RED;   break;
-        case ButtonType::ColorBlue:  borderColor = Color::BLUE;  fillColor = Color::BLUE;  break;
-        case ButtonType::ColorCyan:  borderColor = Color::CYAN;  fillColor = Color::CYAN;  break;
-        case ButtonType::ColorPink:  borderColor = Color::PURPLE;fillColor = Color::PURPLE;break;   // var is purple but image is named pink
-        case ButtonType::ColorYellow:borderColor = Color::YELLOW; fillColor = Color::YELLOW; break;
-        case ButtonType::ColorGreen: borderColor = Color::GREEN;  fillColor = Color::GREEN;  break;
-        // although there is a GRAY var, there is no gray image so we skipped it
-            
-            
-        case ButtonType::Clear:
-            framebuffer.Fill(Color::BLACK);
-            framebuffer.DrawRect(0, 0, 1280, 50, Color::GRAY, 0, true, Color::GRAY);
-            for (const auto& b : buttons) b.Render(framebuffer);
-            break;
-
-        case ButtonType::Load:
-        {
-            Image img;
-            if (!img.LoadPNG("images/load.png", true)) {
-                std::cout << "Load failed: images/load.png\n";
-                break;
-            }
-
-            // clear canvas
-            framebuffer.Fill(Color::BLACK);
-
-            // draw loaded image above toolbar.
-            framebuffer.DrawImage(img, 0, 50);
-
-            // redraw toolbar background + buttons
-            framebuffer.DrawRect(0, 0, window_width, 50, Color::GRAY, 0, true, Color::GRAY);
-            for (const auto& b : buttons) b.Render(framebuffer);
-
-            break;
-        }
-
-
-        case ButtonType::Save:
-        {
-            const unsigned int TOOLBAR_H = 50;
-
-            // if window is too small
-            if (framebuffer.height <= TOOLBAR_H) {
-                std::cout << "Save failed: framebuffer too small\n";
-                break;
-            }
-
-            Image canvas(framebuffer.width, framebuffer.height - TOOLBAR_H);
-
-            // copy pixels from framebuffer
-            for (unsigned int y = 0; y < canvas.height; ++y)
-            {
-                for (unsigned int x = 0; x < canvas.width; ++x)
-                {
-                    canvas.SetPixel(x, y, framebuffer.GetPixel(x, y + TOOLBAR_H));
-                }
-            }
-
-            // save to res path
-            canvas.SaveTGA("output.tga");
-            break;
-        }
-
-
-        default: break;
+        // recompute orbit params
+        Vector3 d = cam->eye - cam->center;
+        orbitDist  = d.Length();
+        orbitYaw   = atan2f(d.z, d.x);
+        orbitPitch = asinf(d.y / std::max(orbitDist, 0.0001f));
     }
 }
 
 
 void Application::OnMouseButtonUp(SDL_MouseButtonEvent event)
 {
-    if (event.button == SDL_BUTTON_LEFT)  orbiting = false;
-    if (event.button == SDL_BUTTON_RIGHT) panning  = false;
+    if (event.button == SDL_BUTTON_LEFT)
+        orbiting = false;
 }
 
 
 void Application::OnMouseMove(SDL_MouseButtonEvent event)
 {
-    Vector2 newPos((float)event.x, (float)event.y);
-    Vector2 prevPos((float)mouse_position.x, (float)(window_height - 1 - mouse_position.y));
+    if (!cam) return;
+    if (!orbiting) return;
 
-    Vector2 canvasNow = MouseToCanvas(event.x, event.y);
-    Vector2 delta = canvasNow - mouse_position;
-    mouse_position = canvasNow;
+    // delta in pixels (SDL origin top-left)
+    float dx = (float)event.x - mouse_position.x;
+    float dy = (float)event.y - mouse_position.y;
 
-    // orbit (left drag)
-    if (orbiting)
-    {
-        orbitYaw   += delta.x * orbitSpeed;
-        orbitPitch += delta.y * orbitSpeed;
-        UpdateCameraFromOrbit();
-        return;
-    }
+    mouse_position = Vector2((float)event.x, (float)event.y);
 
-    // pan target (right drag)
-    if (panning)
-    {
-        // move centre along camera right/up
-        Vector3 forward = (cam->center - cam->eye).Normalize();
-        Vector3 right   = forward.Cross(cam->up).Normalize();
-        Vector3 upMove  = right.Cross(forward).Normalize();
-
-        cam->center = cam->center + right * (delta.x * panSpeed) + upMove * (delta.y * panSpeed);
-        UpdateCameraFromOrbit(); // recompute eye from orbitDist/yaw/pitch around new center
-        return;
-    }
-}
-
-void Application::OnWheel(SDL_MouseWheelEvent event)
-{
-    float dy = event.preciseY;
-
-    // zoom, change orbit distance
-    orbitDist *= (1.0f - dy * 0.1f);
-    orbitDist = std::max(0.1f, orbitDist);
+    // Orbit only while left button is held
+    orbitYaw   -= dx * orbitSpeed;
+    orbitPitch += dy * orbitSpeed;
 
     UpdateCameraFromOrbit();
 }
 
+void Application::OnWheel(SDL_MouseWheelEvent event)
+{
+    if (!cam) return;
+
+    // zoom changes orbit distance
+    orbitDist -= event.preciseY * zoomSpeed;
+    orbitDist = Clamp(orbitDist, 0.5f, 50.0f);
+
+    UpdateCameraFromOrbit();
+}
 
 void Application::OnFileChanged(const char* filename)
-{ 
-	Shader::ReloadSingleShader(filename);
+{
+    Shader::ReloadSingleShader(filename);
 }
