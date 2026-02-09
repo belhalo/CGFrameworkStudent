@@ -94,9 +94,16 @@ void Application::Init(void)
     for (int i = 0; i < numberEntities; ++i)
     {
         Entity* e = new Entity();
-        Matrix44 M;
-        M.MakeTranslationMatrix(i * 2.0f - 2.0f, 0.0f, 0.0f); // spread out on X
+        Matrix44 T;
+        T.MakeTranslationMatrix(i * 2.0f - 2.0f, 0.0f, 0.0f);
+
+        Matrix44 R;
+        R.MakeRotationMatrix(-PI * 0.5f, Vector3(1,0,0)); // rotate 90° around X
+
+        Matrix44 M = T * R;
+
         e->EntityAdd(m, M);
+
         entities.push_back(e);
     }
     
