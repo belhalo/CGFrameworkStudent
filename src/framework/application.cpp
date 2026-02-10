@@ -6,18 +6,24 @@
 
 Application::Application(const char* caption, int width, int height)
 {
-	this->window = createWindow(caption, width, height);
-
-	int w,h;
+    window = createWindow(caption, width, height);
+    
+    int w,h;
     SDL_GetWindowSize(window, &w, &h);
-
-	this->mouse_state = 0;
-	this->time = 0.f;
-	this->window_width = w;
-	this->window_height = h;
-	this->keystate = SDL_GetKeyboardState(nullptr);
-
-	this->framebuffer.Resize(w, h);
+    
+    this->mouse_state = 0;
+    this->time = 0.f;
+    this->window_width = w;
+    this->window_height = h;
+    this->keystate = SDL_GetKeyboardState(nullptr);
+    
+    this->framebuffer.Resize(w, h);
+    
+    // lab3
+    // allocate zbuffer initially (must match framebuffer size)
+    zbuffer.Resize(w, h);
+    
+    mouse_position = Vector2(0.f, 0.f);
 }
 
 Application::~Application()
@@ -87,6 +93,17 @@ void Application::Init(void)
     if (!(m->LoadOBJ("meshes/lee.obj"))) {
         std::cout << "Object not found!" << std::endl;
     }
+    
+    // lab3
+    // load texture ONCE (shared by all entities)
+    Image* tex = new Image();
+    if (!tex->LoadTGA("textures/lee_color_specular.tga", true)) // flip_y=true
+    {
+        std::cout << "Texture not found!" << std::endl;
+        delete tex;
+        tex = nullptr;
+    }
+
 
     // setting the meshes in the entity class
     int numberEntities = 3;         // >= 3 for mode 2
@@ -94,18 +111,23 @@ void Application::Init(void)
     for (int i = 0; i < numberEntities; ++i)
     {
         Entity* e = new Entity();
+
         Matrix44 T;
         T.MakeTranslationMatrix(i * 2.0f - 2.0f, 0.0f, 0.0f);
 
         Matrix44 R;
-        R.MakeRotationMatrix(-PI * 0.5f, Vector3(1,0,0)); // rotate 90° around X
+        R.MakeRotationMatrix(-PI * 0.5f, Vector3(1,0,0));
 
         Matrix44 M = T * R;
 
         e->EntityAdd(m, M);
 
+        // lab3: give each entity the texture pointer (shared) 
+        e->texture = tex;
+
         entities.push_back(e);
     }
+
     
     drawMode = DRAW_SINGLE;
     currentProp = PROP_FOV;
@@ -115,6 +137,11 @@ void Application::Init(void)
 void Application::Render(void)
 {
     framebuffer.Fill(Color::BLACK);
+    
+    // Lab3
+    // clear zbuffer every frame
+    // smaller z is closer, so fill with a huge value
+    zbuffer.Fill(1e9f);
 
     if (!cam || entities.empty())
     {
@@ -122,26 +149,24 @@ void Application::Render(void)
         return;
     }
 
+    // Lab2: "1" shows only one entity (static)
     if (drawMode == DRAW_SINGLE)
     {
-        entities[0]->Render(&framebuffer, cam, Color::WHITE);
+        // Lab3: Render(framebuffer, camera, zbuffer)
+        entities[0]->Render(&framebuffer, cam, &zbuffer);
     }
-    else // DRAW_MULTI
+    else // Lab2: "2" shows multiple entities (animated)
     {
         for (int i = 0; i < (int)entities.size(); ++i)
         {
-            Color c = Color::WHITE;
-            if (i == 1) c = Color::PURPLE;
-            else if (i == 2) c = Color::RED;
-
-            entities[i]->Render(&framebuffer, cam, c);
+            entities[i]->Render(&framebuffer, cam, &zbuffer);
         }
     }
 
     framebuffer.Render();
 }
 
-// Called after render
+// Called once per frame (dt = seconds elapsed since last frame)
 void Application::Update(float seconds_elapsed)
 {
     // Only animate in mode '2' (multiple animated entities)
@@ -233,6 +258,34 @@ void Application::OnKeyPressed(SDL_KeyboardEvent event)
             cam->SetPerspective(cam->fov, aspect, cam->near_plane, cam->far_plane);
             break;
         }
+            
+        // lab3 unteractivity
+        case SDLK_t:
+        {
+            for (auto* e : entities)
+                e->useTexture = !e->useTexture;
+
+            std::cout << "Toggle: useTexture\n";
+            break;
+        }
+
+        case SDLK_z:
+        {
+            for (auto* e : entities)
+                e->useZBuffer = !e->useZBuffer;
+
+            std::cout << "Toggle: useZBuffer\n";
+            break;
+        }
+
+        case SDLK_c:
+        {
+            for (auto* e : entities)
+                e->interpolateUVs = !e->interpolateUVs;
+
+            std::cout << "Toggle: interpolateUVs\n";
+            break;
+        }
 
         default:
             break;
@@ -246,18 +299,22 @@ void Application::OnMouseButtonDown(SDL_MouseButtonEvent event)
 
     if (event.button == SDL_BUTTON_LEFT)
     {
+        // start orbiting
         orbiting = true;
+
+        // set current mouse reference point
+        mouse_position = Vector2((float)event.x, (float)event.y);
     }
     else if (event.button == SDL_BUTTON_RIGHT)
     {
-        // Right click: set camera target (center)
+        // Right-click: set camera target (center)
         float nx = (2.0f * event.x) / (float)window_width - 1.0f;
         float ny = 1.0f - (2.0f * event.y) / (float)window_height;
 
         cam->center = Vector3(nx, ny, cam->center.z);
         cam->UpdateViewMatrix();
 
-        // recompute orbit params
+        // recompute orbit params based on new center
         Vector3 d = cam->eye - cam->center;
         orbitDist  = d.Length();
         orbitYaw   = atan2f(d.z, d.x);
