@@ -628,3 +628,180 @@ void FloatImage::Resize(unsigned int width, unsigned int height)
 	this->height = height;
 	pixels = new_pixels;
 }
+
+// LAB3: Barycentric triangle rasterization helpers + functions
+
+// Edge function (signed area * 2):
+// used to compute barycentric coords
+// if all edge tests are the same sign => point is inside triangle
+static inline float EdgeFunction(const Vector2& a, const Vector2& b, const Vector2& c)
+{
+    return (c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x);
+}
+
+// clamp int to [0..max] but return as unsigned
+static inline unsigned int ClampUInt(int v, unsigned int lo, unsigned int hi)
+{
+    if (v < (int)lo) return lo;
+    if (v > (int)hi) return hi;
+    return (unsigned int)v;
+}
+
+
+
+
+// lab3
+// version1: no textures
+void Image::DrawTriangleInterpolated(
+    const Vector3& p0, const Vector3& p1, const Vector3& p2,
+    const Color& c0, const Color& c1, const Color& c2,
+    FloatImage* zbuffer
+)
+{
+    // Call the texture version, but with texture == nullptr
+    // UVs unused, so pass dummy values
+    DrawTriangleInterpolated(
+        p0, p1, p2,
+        c0, c1, c2,
+        zbuffer,
+        nullptr,
+        Vector2(0.f, 0.f), Vector2(0.f, 0.f), Vector2(0.f, 0.f),
+        false
+    );
+}
+
+// version2: w textures
+// triangle rasterization with barycentric interpolation
+// - P0,P1,P2: screen space vertex positions (x,y in pixels) + z for occlusion
+// - C0,C1,C2: vertex colors (used when texture is null)
+// - zbuffer: if not null => do Z test (occlusion) per pixel
+// - texture + uv0,uv1,uv2:
+//     if texture != null => fetch texel using UVs
+// - interpolateUVs:
+//     true  => correct UV interpolation using barycentric weights
+//     false => wrong mode (use uv0 for whole tri) to show artifacts
+void Image::DrawTriangleInterpolated(
+    const Vector3& P0, const Vector3& P1, const Vector3& P2,
+    const Color& C0, const Color& C1, const Color& C2,
+    FloatImage* zbuffer,
+    Image* texture,
+    const Vector2& UV0, const Vector2& UV1, const Vector2& UV2,
+    bool interpolateUVs
+)
+{
+    // convert to 2D for barycentric math
+    Vector2 p0(P0.x, P0.y);
+    Vector2 p1(P1.x, P1.y);
+    Vector2 p2(P2.x, P2.y);
+
+    // Compute bounding box in screen space
+    // raster only pixels inside this box
+    int minX = (int)floorf(std::min({ p0.x, p1.x, p2.x }));
+    int minY = (int)floorf(std::min({ p0.y, p1.y, p2.y }));
+    int maxX = (int)ceilf (std::max({ p0.x, p1.x, p2.x }));
+    int maxY = (int)ceilf (std::max({ p0.y, p1.y, p2.y }));
+
+    if (width == 0 || height == 0) return;
+
+    // clamp to framebuffer bounds to avoid out-of-bounds writes
+    minX = std::max(minX, 0);
+    minY = std::max(minY, 0);
+    maxX = std::min(maxX, (int)width  - 1);
+    maxY = std::min(maxY, (int)height - 1);
+
+    // if bbox became empty after clamping, skip
+    if (minX > maxX || minY > maxY) return;
+
+
+    // Compute triangle area (edge function)
+    // if area ~ 0 => degenerate triangle, skip
+    float area = EdgeFunction(p0, p1, p2);
+    if (fabsf(area) < 1e-8f) return;
+
+    // Rasterize: loop all pixels in bbox
+    //    for each pixel:
+    //      - compute barycentric weights (w0,w1,w2)
+    //      - reject if outside triangle
+    //      - interpolate z (and do zbuffer)
+    //      - compute color (either interpolate colors or sample texture)
+    //      - SetPixel
+    for (int y = minY; y <= maxY; ++y)
+    {
+        for (int x = minX; x <= maxX; ++x)
+        {
+            // pixel center sampling reduces cracks
+            Vector2 p((float)x + 0.5f, (float)y + 0.5f);
+
+            // unnormalized barycentric numerators
+            float w0 = EdgeFunction(p1, p2, p);
+            float w1 = EdgeFunction(p2, p0, p);
+            float w2 = EdgeFunction(p0, p1, p);
+
+            // support both CW and CCW triangles by comparing sign with area.
+            bool inside = (area > 0.0f) ? (w0 >= 0 && w1 >= 0 && w2 >= 0)
+                                        : (w0 <= 0 && w1 <= 0 && w2 <= 0);
+            if (!inside) continue;
+
+            // normalize so weights sum to 1
+            w0 /= area;
+            w1 /= area;
+            w2 /= area;
+
+            // Z interpolation + Z-test (occlusion)
+            // interpolate the vertex z values using barycentrics
+            float z = w0 * P0.z + w1 * P1.z + w2 * P2.z;
+
+            if (zbuffer)
+            {
+                float& zref = zbuffer->GetPixelRef((unsigned int)x, (unsigned int)y);
+
+                // convention: smaller z = closer (initialize zbuffer to huge)
+                // ff our z is NOT closer, discard pixel
+                if (z >= zref) continue;
+
+                // otherwise, accept and store new depth
+                zref = z;
+            }
+
+            // compute final pixel color
+            // if texture is present -> use UVs to sample texture
+            // else -> interpolate vertex colors
+            Color out;
+
+            if (texture)
+            {
+                Vector2 uv;
+
+                // correct mode: interpolate UV per pixel
+                if (interpolateUVs)
+                    uv = UV0 * w0 + UV1 * w1 + UV2 * w2;
+                else
+                    uv = UV0; // wrong mode (C key interactivity exercise)
+
+                // convert uv [0..1] -> texture pixel coords
+                float txf = uv.x * (texture->width  - 1);
+                float tyf = uv.y * (texture->height - 1);
+
+                // nearest sampling
+                int tx = (int)floorf(txf + 0.5f);
+                int ty = (int)floorf(tyf + 0.5f);
+
+                tx = (int)ClampUInt(tx, 0, texture->width  - 1);
+                ty = (int)ClampUInt(ty, 0, texture->height - 1);
+
+                out = texture->GetPixel((unsigned int)tx, (unsigned int)ty);
+            }
+            else
+            {
+                // interpolate colors
+                float r = w0 * C0.r + w1 * C1.r + w2 * C2.r;
+                float g = w0 * C0.g + w1 * C1.g + w2 * C2.g;
+                float b = w0 * C0.b + w1 * C1.b + w2 * C2.b;
+
+                out = Color(r, g, b);
+            }
+
+            SetPixel((unsigned int)x, (unsigned int)y, out);
+        }
+    }
+}

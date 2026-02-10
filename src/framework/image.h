@@ -1,6 +1,11 @@
 /*
 	+ This file defines the class Image that allows to manipulate images.
 	+ It defines all the need operators for Color and Image
+ 
+ - Stores a CPU framebuffer (Color per pixel)
+ - Provides drawing primitives (line, rect, triangle, etc.)
+ - Lab3 adds a triangle rasterizer using barycentric interpolation:
+     * Interpolate vertex colors across the triangle
 */
 
 #pragma once
@@ -20,6 +25,7 @@ class FloatImage;
 class Entity;
 class Camera;
 
+// Image: RGB framebuffer in CPU memory
 // A matrix of pixels
 class Image
 {
@@ -34,11 +40,11 @@ class Image
 public:
 	unsigned int width;
 	unsigned int height;
-	unsigned int bytes_per_pixel = 3; // Bits per pixel
+	unsigned int bytes_per_pixel = 3; // Bits per pixel (rgb)
 
 	Color* pixels;
 
-	// Constructors
+	// Constructors / copy / assign
 	Image();
 	Image(unsigned int width, unsigned int height);
 	Image(const Image& c);
@@ -46,31 +52,40 @@ public:
 
 	// Destructor
 	~Image();
-
+    
+    // sends CPU pixels to OpenGL window
 	void Render();
 
 	// Get the pixel at position x,y
 	Color GetPixel(unsigned int x, unsigned int y) const { return pixels[ y * width + x ]; }
 	Color& GetPixelRef(unsigned int x, unsigned int y)	{ return pixels[ y * width + x ]; }
-	Color GetPixelSafe(unsigned int x, unsigned int y) const {	
+    
+    // safe version (clamps coords)
+	Color GetPixelSafe(unsigned int x, unsigned int y) const {
 		x = clamp((unsigned int)x, 0, width-1); 
 		y = clamp((unsigned int)y, 0, height-1); 
 		return pixels[ y * width + x ]; 
 	}
 
-	// Set the pixel at position x,y with value C
+	// Set the pixel at position x,y with value C (bounds check)
 	void SetPixel(unsigned int x, unsigned int y, const Color& c) { if(x < 0 || x > width-1) return; if(y < 0 || y > height-1) return; pixels[ y * width + x ] = c; }
+    // no bounds check
 	inline void SetPixelUnsafe(unsigned int x, unsigned int y, const Color& c) { pixels[ y * width + x ] = c; }
 
+    // resize without scaling content (keeps top left area)
 	void Resize(unsigned int width, unsigned int height);
+    
+    // resize scaling existing content
 	void Scale(unsigned int width, unsigned int height);
 	
-	void FlipY(); // Flip the image top-down
+    // flip image vertically (for textures)
+	void FlipY();
 
 	// Fill the image with the color C
 	void Fill(const Color& c) { for(unsigned int pos = 0; pos < width*height; ++pos) pixels[pos] = c; }
 
 	// Returns a new image with the area from (startx,starty) of size width,height
+    // extract sub-rectangle of image
 	Image GetArea(unsigned int start_x, unsigned int start_y, unsigned int width, unsigned int height);
 
 	// Save or load images from the hard drive
@@ -78,15 +93,39 @@ public:
 	bool LoadTGA(const char* filename, bool flip_y = false);
 	bool SaveTGA(const char* filename);
 
+    // lab1
 	// Draws lines (using DDA algorithm!)
 	void DrawLineDDA(int x0, int y0, int x1, int y1, const Color& c);
 
-	// Draws a rectangle 
+    // lab1
+	// Draws a rectangle
 	void DrawRect(int x, int y, int w, int h, const Color& borderColor, int borderWidth, bool isFilled, const Color& fillColor);
-
+    
 	// Draws a triangle
 	void DrawTriangle(const Vector2& p0, const Vector2& p1, const Vector2& p2, const Color& borderColor, bool isFilled, const Color& fillColor);
-
+    
+    // lab3
+    // version1: no texture
+    void DrawTriangleInterpolated(
+        const Vector3& p0, const Vector3& p1, const Vector3& p2,
+        const Color& c0, const Color& c1, const Color& c2,
+        FloatImage* zbuffer
+    );
+    // version2: with texture
+    // - If texture != nullptr and interpolateUVs=true:
+    //      barycentrically interpolate UV per pixel, then sample texture
+    // - If interpolateUVs=false:
+    //      "wrong mode": uses only uv0 for the whole triangle
+    void DrawTriangleInterpolated(
+        const Vector3& p0, const Vector3& p1, const Vector3& p2,
+        const Color& c0, const Color& c1, const Color& c2,
+        FloatImage* zbuffer,
+        Image* texture,
+        const Vector2& uv0, const Vector2& uv1, const Vector2& uv2,
+        bool interpolateUVs
+    );
+    
+    // lab1
     // Draws a circle using Midpoint Circle algorithm
     void DrawCircle(int cx, int cy, int radius, const Color& borderColor, int borderWidth, bool isFilled, const Color& fillColor);
 
@@ -110,7 +149,7 @@ public:
 };
 
 // Image storing one float per pixel instead of a 3 or 4 component Color
-
+// 1 float per pixel (used as z-buffer in lab3)
 class FloatImage
 {
 public:
@@ -127,6 +166,7 @@ public:
 	//destructor
 	~FloatImage();
 
+    // fill z-buffer with some big value
 	void Fill(const float& v) { for (unsigned int pos = 0; pos < width * height; ++pos) pixels[pos] = v; }
 
 	//get the pixel at position x,y
@@ -137,5 +177,6 @@ public:
 	void SetPixel(unsigned int x, unsigned int y, const float& v) { if (x < 0 || x > width - 1) return; if (y < 0 || y > height - 1) return; pixels[y * width + x] = v; }
 	inline void SetPixelUnsafe(unsigned int x, unsigned int y, const float& v) { pixels[y * width + x] = v; }
 
+    // keep the top left (like image::resize)
 	void Resize(unsigned int width, unsigned int height);
 };

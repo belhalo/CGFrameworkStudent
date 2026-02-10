@@ -23,7 +23,7 @@ public:
 	float time;
 
 	// Camera
-	Camera* cam; // we create a general camera
+    Camera* cam = nullptr; // we create a general camera
 
 	// Scene Objects
 	std::vector<Entity*> entities; // we create a list of entities to control all of them in the scene
@@ -51,12 +51,17 @@ public:
     float orbitSpeed = 0.005f;
     float zoomSpeed  = 0.2f;
 
-    // helper
+    // Recompute cam->eye from yaw/pitch/dist around cam->center
     void UpdateCameraFromOrbit();
 
     // CPU framebuffer
     Image framebuffer;
-
+    
+    // lab3
+    // Z-buffer (depth buffer) on CPU
+    // stores 1 float per pixel, smaller = closer
+    FloatImage zbuffer;
+    
 	// Constructor and main methods
 	Application(const char* caption, int width, int height);
 	~Application();
@@ -73,12 +78,19 @@ public:
     void OnFileChanged(const char* filename);
     
     // Window resize hook
+    // - Resize framebuffer and zbuffer
+    // - Update camera aspect ratio
     void SetWindowSize(int width, int height)
     {
         glViewport(0, 0, width, height);
         window_width = width;
         window_height = height;
+
         framebuffer.Resize(width, height);
+
+        // lab3
+        // zbuffer must always match framebuffer size
+        zbuffer.Resize(width, height);
 
         if (cam)
         {
