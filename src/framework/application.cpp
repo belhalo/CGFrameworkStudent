@@ -80,7 +80,9 @@ void Application::Init(void)
         Vector3(-0.2f, -0.8f, 0.8f),
         Vector3(0.0f, 1.0f, 0.0f)
     );
-    
+
+    cam->UpdateViewMatrix();
+
     // set projection
     cam->SetPerspective(60.0f, aspect, 0.1f, 100.0f);
 
@@ -134,33 +136,6 @@ void Application::Init(void)
 
         entities.push_back(e);
     }
-
-    /*
-    // setting the meshes in the entity class
-    int numberEntities = 3; //modify it depending the number of entities we want 
-    for (int i = 0; i < numberEntities; i++) {
-        Entity* e = new Entity;
-        Matrix44 matrix;
-        matrix.MakeTranslationMatrix(i * 2.0 - 2.0, 0, 0);
-
-        e->EntityAdd(m, matrix);
-        this->entities.emplace_back(e);
-
-    }
-
-
-    // create the entity and assign the loaded mesh
-    for (int i = 0; i < entities.size(); i++) {
-        // for default the color will be white
-        Color choosenColor = Color::WHITE;
-        // then, depending of the iteration we will painting in a color on in another -> to have variation
-        if (i == 1) choosenColor = Color::PURPLE;
-        else if (i == 2) choosenColor = Color::RED;
-        entities[i]->Render()
-        entities[i]->Render(&framebuffer, cam, choosenColor);
-    }
-
-    framebuffer.Render();*/
     
     //drawMode = DRAW_MULTI;
     drawMode = DRAW_SINGLE;
@@ -207,7 +182,7 @@ void Application::Update(float seconds_elapsed)
     if (drawMode == DRAW_MULTI)
     {
         for (auto* e : entities)
-            e->Update(seconds_elapsed);
+            e->Update(seconds_elapsed/2);
     }
 }
 
@@ -377,9 +352,6 @@ void Application::OnMouseMove(SDL_MouseButtonEvent event)
     orbitPitch += dy * (orbitSpeed/8);
 
     UpdateCameraFromOrbit();
-
-    cam->UpdateViewMatrix();
-    cam->viewprojection_matrix = cam->view_matrix * cam->projection_matrix;
 }
 
 void Application::OnWheel(SDL_MouseWheelEvent event)

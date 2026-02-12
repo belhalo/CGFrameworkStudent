@@ -118,8 +118,6 @@ void Camera::UpdateViewMatrix()
     UpdateViewProjectionMatrix();
 }
 
-
-
 // Create a projection matrix
 void Camera::UpdateProjectionMatrix()
 {
