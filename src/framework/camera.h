@@ -1,72 +1,78 @@
-/*
-	This class wraps the behaviour of a camera. A Camera helps to set the point of view from where we will render the scene.
-	The most important attributes are eye and center which say where is the camera and where is it pointing.
-	This class also stores the matrices used to do the transformation and projection of the scene.
-*/
 #pragma once
 
 #include "framework.h"
 
 class Camera
 {
-	// OpenGL methods to fill matrices
-	// Only to test Draw3DEntity
-	void SetExampleViewMatrix();
-	void SetExampleProjectionMatrix();
+    // lab1 opengl reference functions used for testing matrix correctness
+    void SetExampleViewMatrix();
+    void SetExampleProjectionMatrix();
 
 public:
+    // lab1 camera projection type selector
+    enum { PERSPECTIVE, ORTHOGRAPHIC };
+    char type;
 
-	// Types of cameras available
-	enum { PERSPECTIVE, ORTHOGRAPHIC }; 
-	char type;
+    // lab1 camera position orientation vectors in world space
+    Vector3 eye;
+    Vector3 center;
+    Vector3 up;
 
-	// Vectors to define the orientation of the camera
-	Vector3 eye;	// Where is the camera
-	Vector3 center; // Where is it pointing
-	Vector3 up;		// The up pointing up
+    // lab1 perspective parameters field of view aspect near far planes
+    float fov;
+    float aspect;
+    float near_plane;
+    float far_plane;
 
-	// Properties of the projection of the camera
-	float fov;			// View angle in degrees (1/zoom)
-	float aspect;		// Aspect ratio (width/height)
-	float near_plane;	// Near plane
-	float far_plane;	// Far plane
+    // lab1 orthographic projection bounds
+    float left, right, top, bottom;
 
-	// For orthogonal projection
-	float left, right, top, bottom;
+    // lab1 matrices used in transformation pipeline
+    // view matrix transforms world to camera space
+    // projection matrix transforms camera to clip space
+    // viewprojection matrix combines both
+    Matrix44 view_matrix;
+    Matrix44 rotation_matrix;
+    Matrix44 translation_matrix;
+    Matrix44 projection_matrix;
+    Matrix44 viewprojection_matrix;
 
-	// Matrices
-		// (1) viewing transformation -> world-to-camera 
-	    // (2) projection trnasformation -> camera-to-canonicalView
-	    // (3) viewpart transformation -> canonicalView-to-screen
-	Matrix44 view_matrix; 
- 	Matrix44 projection_matrix; 
-	Matrix44 viewprojection_matrix; 
+    // lab1 constructor initializes matrices and default projection
+    Camera();
 
-	Camera();
+    // lab1 update aspect ratio used in projection matrix
+    void SetAspectRatio(float aspect) { this->aspect = aspect; }
 
-	// Setters
-	void SetAspectRatio(float aspect) { this->aspect = aspect; };
+    // lab2 translate camera in local camera space
+    void Move(Vector3 delta);
 
-	// Translate and rotate the camera
-	void Move(Vector3 delta);
-	void Rotate(float angle, const Vector3& axis);
+    // lab2 rotate camera around axis passing through eye
+    void Rotate(float angle, const Vector3& axis);
 
-	// Transform a local camera vector to world coordinates
-	Vector3 GetLocalVector(const Vector3& v);
+    // lab2 convert camera local vector into world space direction
+    Vector3 GetLocalVector(const Vector3& v);
 
-	// Project 3D Vectors to 2D Homogeneous Space
-	Vector3 ProjectVector(Vector3 pos);
+    // lab2 project world position into normalized device coordinates
+    Vector3 ProjectVector(Vector3 pos);
 
-	// Set the info for each projection
-	void SetPerspective(float fov, float aspect, float near_plane, float far_plane);
-	void SetOrthographic(float left, float right, float top, float bottom, float near_plane, float far_plane);
-	void LookAt(const Vector3& eye, const Vector3& center, const Vector3& up);
+    // lab1 configure perspective projection parameters
+    void SetPerspective(float fov, float aspect, float near_plane, float far_plane);
 
-	// Compute the matrices
-	void UpdateViewMatrix();
-	void UpdateProjectionMatrix();
+    // lab1 configure orthographic projection parameters
+    void SetOrthographic(float left, float right, float top, float bottom, float near_plane, float far_plane);
 
-	void UpdateViewProjectionMatrix();
+    // lab1 update camera pose using eye center and up vectors
+    void LookAt(const Vector3& eye, const Vector3& center, const Vector3& up);
 
-	Matrix44 GetViewProjectionMatrix();
+    // lab1 recompute view matrix from camera pose
+    void UpdateViewMatrix();
+
+    // lab1 recompute projection matrix from camera parameters
+    void UpdateProjectionMatrix();
+
+    // lab1 recompute combined view projection matrix
+    void UpdateViewProjectionMatrix();
+
+    // lab2 return combined view projection matrix
+    Matrix44 GetViewProjectionMatrix();
 };

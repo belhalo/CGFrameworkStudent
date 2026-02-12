@@ -1,53 +1,62 @@
 #include "application.h"
 #include "mesh.h"
 #include "shader.h"
-#include "utils.h" 
-#include "entity.h"
+#include "utils.h"
 
-Application::Application(const char* caption, int width, int height)
-{
-    window = createWindow(caption, width, height);
-    
-    int w,h;
-    SDL_GetWindowSize(window, &w, &h);
-    
-    this->mouse_state = 0;
-    this->time = 0.f;
-    this->window_width = w;
-    this->window_height = h;
-    this->keystate = SDL_GetKeyboardState(nullptr);
-    
-    this->framebuffer.Resize(w, h);
-    
-    // lab3
-    // allocate zbuffer initially (must match framebuffer size)
-    zbuffer.Resize(w, h);
-    
-    mouse_position = Vector2(0.f, 0.f);
-}
+#include <algorithm>
+#include <cmath>
+#include <iostream>
 
-Application::~Application()
-{
-    for (auto* e : entities) delete e;
-    entities.clear();
-    delete cam;
-    cam = nullptr;
-}
-
-// small clamp helper
+// helper clamp value inside range
 static inline float Clamp(float v, float a, float b)
 {
     return std::max(a, std::min(v, b));
 }
 
-// call after changing orbitYaw/orbitPitch/orbitDist or after moving center
+Application::Application(const char* caption, int width, int height)
+{
+    // create window and graphics context
+    window = createWindow(caption, width, height);
+
+    // query actual window size from system
+    int w, h;
+    SDL_GetWindowSize(window, &w, &h);
+
+    // initialize input and timing values
+    this->mouse_state = 0;
+    this->time = 0.f;
+    this->window_width = w;
+    this->window_height = h;
+    this->keystate = SDL_GetKeyboardState(nullptr);
+
+    // resize framebuffer and zbuffer to window resolution
+    this->framebuffer.Resize(w, h);
+    this->zbuffer.Resize(w, h);
+
+    // store initial mouse position
+    mouse_position = Vector2(0.f, 0.f);
+}
+
+Application::~Application()
+{
+    // delete all entities created during init
+    for (auto* e : entities) delete e;
+    entities.clear();
+
+    // delete camera instance
+    delete cam;
+    cam = nullptr;
+}
+
 void Application::UpdateCameraFromOrbit()
 {
     if (!cam) return;
 
-    orbitPitch = Clamp(orbitPitch, -1.5f, 1.5f);
-    orbitDist = std::max(0.1f, orbitDist);
+    // clamp pitch and distance to avoid flips and invalid zoom
+    orbitPitch = Clamp(orbitPitch, -1.45f, 1.45f);
+    orbitDist  = Clamp(orbitDist, 0.6f, 25.0f);
 
+    // compute spherical coordinates offset from yaw pitch distance
     float cp = cosf(orbitPitch);
 
     Vector3 offset;
@@ -55,101 +64,130 @@ void Application::UpdateCameraFromOrbit()
     offset.y = orbitDist * sinf(orbitPitch);
     offset.z = orbitDist * cp * sinf(orbitYaw);
 
+    // compute camera eye position around center
     cam->up = Vector3(0, 1, 0);
     cam->eye = cam->center + offset;
 
+    // rebuild camera view matrix
     cam->LookAt(cam->eye, cam->center, Vector3(0, 1, 0));
-
     cam->UpdateViewMatrix();
 }
 
 void Application::Init(void)
 {
-	std::cout << "Initiating app..." << std::endl;
-    // clear framebuffer once
+    std::cout << "Initiating app..." << std::endl;
+
+    // clear framebuffer once at start
     framebuffer.Fill(Color::BLACK);
 
-    // init the camera
-    cam = new Camera(); // create a new camera, but as we are in the init the only create it once
-    float aspect = (float) window_width / (float) window_height;
+    // create camera and configure projection
+    cam = new Camera();
+    float aspect = (float)window_width / (float)window_height;
 
-
-    // set camera pose (ONLY ONCE)
+    // initial camera position looking at origin
     cam->LookAt(
-        Vector3(2.0f, 0.5f, 0.5f),
-        Vector3(-0.2f, -0.8f, 0.8f),
-        Vector3(0.0f, 1.0f, 0.0f)
+        Vector3(0.0f, 0.35f, 2.2f),   // eye position
+        Vector3(0.0f, 0.35f, 0.0f),   // target center
+        Vector3(0.0f, 1.0f, 0.0f)     // up direction
     );
-
     cam->UpdateViewMatrix();
 
-    // set projection
+    // configure perspective projection
     cam->SetPerspective(60.0f, aspect, 0.1f, 100.0f);
 
-    // initialise orbit from current eye/center (AFTER LookAt)
+    // compute orbit parameters from current camera pose
     Vector3 d = cam->eye - cam->center;
     orbitDist = d.Length();
-    orbitYaw   = atan2f(d.z, d.x);
+    orbitYaw = atan2f(d.z, d.x);
     orbitPitch = asinf(d.y / std::max(orbitDist, 0.0001f));
-    
-    // download the mesh from the resources
-    Mesh* m = new Mesh();
-    if (!(m->LoadOBJ("meshes/lee.obj"))) {
-        std::cout << "Object not found!" << std::endl;
-    }
-    
-    // lab3
-    // load texture ONCE (shared by all entities)
-    Image* tex = new Image();
-    if (!tex->LoadTGA("textures/lee_color_specular.tga", true)) // flip_y=true
+
+    // asset container storing mesh and texture pairs
+    struct ModelAsset
     {
-        std::cout << "Texture not found!" << std::endl;
-        delete tex;
-        tex = nullptr;
+        const char* mesh_path;
+        const char* tex_path;
+        Mesh* mesh;
+        Image* tex;
+    };
+
+    // list of models and textures to load
+    ModelAsset assets[3] = {
+        { "meshes/anna.obj", "textures/anna_color_specular.tga", nullptr, nullptr },
+        { "meshes/cleo.obj", "textures/cleo_color_specular.tga", nullptr, nullptr },
+        { "meshes/lee.obj",  "textures/lee_color_specular.tga",  nullptr, nullptr }
+    };
+
+    // load meshes and textures from disk
+    for (int i = 0; i < 3; ++i)
+    {
+        assets[i].mesh = new Mesh();
+        if (!assets[i].mesh->LoadOBJ(assets[i].mesh_path))
+        {
+            std::cout << "Mesh not found: " << assets[i].mesh_path << std::endl;
+            delete assets[i].mesh;
+            assets[i].mesh = nullptr;
+        }
+
+        assets[i].tex = new Image();
+        if (!assets[i].tex->LoadTGA(assets[i].tex_path, true))
+        {
+            std::cout << "Texture not found: " << assets[i].tex_path << std::endl;
+            delete assets[i].tex;
+            assets[i].tex = nullptr;
+        }
     }
 
-    // setting the meshes in the entity class
-    int numberEntities = 3;         // >= 3 for mode 2
+    // choose fallback mesh and texture if loading fails
+    Mesh*  fallbackMesh = assets[2].mesh ? assets[2].mesh : (assets[0].mesh ? assets[0].mesh : assets[1].mesh);
+    Image* fallbackTex  = assets[2].tex  ? assets[2].tex  : (assets[0].tex  ? assets[0].tex  : assets[1].tex);
+
+    int numberEntities = 3;
     entities.reserve(numberEntities);
+
+    // create entities and assign transforms assets
     for (int i = 0; i < numberEntities; ++i)
     {
         Entity* e = new Entity();
 
+        // translate models along x axis
         Matrix44 T;
-        T.MakeTranslationMatrix(i * 2.0f - 2.0f, 0.0f, 0.0f);
+        T.MakeTranslationMatrix(i * 1.4f - 1.4f, 0.0f, 0.0f);
 
-        Matrix44 R;
-        R.MakeRotationMatrix(-PI, Vector3(0,0,1));
-        //R.MakeRotationMatrix(-PI/2, Vector3(1, 0, 0));
-        //R.MakeRotationMatrix(PI * 0.5f, Vector3(0,1,0));
+        // rotate model from z up to y up
+        Matrix44 Rx; Rx.MakeRotationMatrix(+PI / 2.0f, Vector3(1, 0, 0));
 
-        Matrix44 M = T * R;
-        
-        R.MakeRotationMatrix(-PI / 2, Vector3(1, 0, 0));
+        // rotate model to face camera
+        Matrix44 Ry; Ry.MakeRotationMatrix(PI, Vector3(0, 1, 0));
 
-        M = M * R;
+        // final model transform
+        Matrix44 M = T * Ry * Rx;
 
-        e->EntityAdd(m, M);
+        // animation phase offset per entity
+        e->phase = i * 1.0f;
 
-        // lab3: give each entity the texture pointer (shared) 
-        e->texture = tex;
+        // choose mesh and texture or fallback
+        Mesh*  useMesh = assets[i].mesh ? assets[i].mesh : fallbackMesh;
+        Image* useTex  = assets[i].tex  ? assets[i].tex  : fallbackTex;
+
+        e->EntityAdd(useMesh, M);
+        e->texture = useTex;
 
         entities.push_back(e);
     }
-    
-    //drawMode = DRAW_MULTI;
+
+    // default render mode single entity
     drawMode = DRAW_SINGLE;
+
+    // default camera property selection
     currentProp = PROP_FOV;
 }
 
-// Render one frame
 void Application::Render(void)
 {
+    // clear framebuffer every frame
     framebuffer.Fill(Color::BLACK);
-    
-    // Lab3
-    // clear zbuffer every frame
-    // smaller z is closer, so fill with a huge value
+
+    // clear depth buffer large value means far
     zbuffer.Fill(1e9f);
 
     if (!cam || entities.empty())
@@ -158,35 +196,31 @@ void Application::Render(void)
         return;
     }
 
-    // Lab2: "1" shows only one entity (static)
+    // render either single or multiple entities
     if (drawMode == DRAW_SINGLE)
     {
-        // Lab3: Render(framebuffer, camera, zbuffer)
         entities[0]->Render(&framebuffer, cam, &zbuffer);
     }
-    else // Lab2: "2" shows multiple entities (animated)
+    else
     {
         for (int i = 0; i < (int)entities.size(); ++i)
-        {
             entities[i]->Render(&framebuffer, cam, &zbuffer);
-        }
     }
 
+    // present framebuffer to window
     framebuffer.Render();
 }
 
-// Called once per frame (dt = seconds elapsed since last frame)
 void Application::Update(float seconds_elapsed)
 {
-    // Only animate in mode '2' (multiple animated entities)
+    // animate entities only in multi mode
     if (drawMode == DRAW_MULTI)
     {
         for (auto* e : entities)
-            e->Update(seconds_elapsed/2);
+            e->Update(seconds_elapsed / 2);
     }
 }
 
-// Keyboard press event
 void Application::OnKeyPressed(SDL_KeyboardEvent event)
 {
     if (!cam) return;
@@ -195,103 +229,90 @@ void Application::OnKeyPressed(SDL_KeyboardEvent event)
     {
         case SDLK_ESCAPE: exit(0); break;
 
-        // "1" -> Draw SINGLE entity
+        // switch to single entity mode
         case SDLK_1:
             drawMode = DRAW_SINGLE;
             std::cout << "Mode: SINGLE\n";
             break;
 
-        // "2" -> Draw MULTIPLE animated entities
+        // switch to multiple entity mode
         case SDLK_2:
             drawMode = DRAW_MULTI;
             std::cout << "Mode: MULTI\n";
             break;
 
-        // "N" -> select NEAR
+        // select near plane modification
         case SDLK_n:
             currentProp = PROP_NEAR;
             std::cout << "Prop: NEAR\n";
             break;
 
-        // "F" -> select FAR
+        // select far plane modification
         case SDLK_f:
             currentProp = PROP_FAR;
             std::cout << "Prop: FAR\n";
             break;
 
-        // "V" -> select FOV
+        // select fov modification
         case SDLK_v:
             currentProp = PROP_FOV;
             std::cout << "Prop: FOV\n";
             break;
 
-        // "+" -> increase selected property
+        // increase selected camera parameter
         case SDLK_PLUS:
-        case SDLK_EQUALS: // mac '+' is Shift+'='
+        case SDLK_EQUALS:
         {
             if (currentProp == PROP_NEAR)
-            {
                 cam->near_plane = std::min(cam->near_plane + 0.05f, cam->far_plane - 0.05f);
-            }
             else if (currentProp == PROP_FAR)
-            {
                 cam->far_plane = cam->far_plane + 0.5f;
-            }
-            else // PROP_FOV
-            {
+            else
                 cam->fov = std::min(cam->fov + 2.0f, 120.0f);
-            }
 
             float aspect = (float)window_width / (float)window_height;
             cam->SetPerspective(cam->fov, aspect, cam->near_plane, cam->far_plane);
             break;
         }
 
-        // "-" -> decrease selected property
+        // decrease selected camera parameter
         case SDLK_MINUS:
         {
             if (currentProp == PROP_NEAR)
-            {
                 cam->near_plane = std::max(cam->near_plane - 0.05f, 0.01f);
-            }
             else if (currentProp == PROP_FAR)
-            {
                 cam->far_plane = std::max(cam->far_plane - 0.5f, cam->near_plane + 0.05f);
-            }
-            else // PROP_FOV
-            {
+            else
                 cam->fov = std::max(cam->fov - 2.0f, 10.0f);
-            }
 
             float aspect = (float)window_width / (float)window_height;
             cam->SetPerspective(cam->fov, aspect, cam->near_plane, cam->far_plane);
             break;
         }
-            
-        // lab3 unteractivity
+
+        // toggle texture usage
         case SDLK_t:
         {
             for (auto* e : entities)
                 e->useTexture = !e->useTexture;
-
             std::cout << "Toggle: useTexture\n";
             break;
         }
 
+        // toggle zbuffer usage
         case SDLK_z:
         {
             for (auto* e : entities)
                 e->useZBuffer = !e->useZBuffer;
-
             std::cout << "Toggle: useZBuffer\n";
             break;
         }
 
+        // toggle uv interpolation
         case SDLK_c:
         {
             for (auto* e : entities)
                 e->interpolateUVs = !e->interpolateUVs;
-
             std::cout << "Toggle: interpolateUVs\n";
             break;
         }
@@ -305,67 +326,88 @@ void Application::OnMouseButtonDown(SDL_MouseButtonEvent event)
 {
     if (!cam) return;
 
-    if (event.button == SDL_BUTTON_LEFT)
-    {
-        // start orbiting
-        orbiting = true;
-
-        // set current mouse reference point
-        mouse_position = Vector2((float)event.x, (float)event.y);
-    }
-    else if (event.button == SDL_BUTTON_RIGHT)
-    {
-        // Right-click: set camera target (center)
-        float nx = (2.0f * event.x) / (float)window_width - 1.0f;
-        float ny = 1.0f - (2.0f * event.y) / (float)window_height;
-
-        cam->center = Vector3(nx, ny, cam->center.z);
-        cam->UpdateViewMatrix();
-
-        // recompute orbit params based on new center
-        Vector3 d = cam->eye - cam->center;
-        orbitDist  = d.Length();
-        orbitYaw   = atan2f(d.z, d.x);
-        orbitPitch = asinf(d.y / std::max(orbitDist, 0.0001f));
-    }
+    // store mouse position at press time
+    mouse_position = Vector2((float)event.x, (float)event.y);
 }
 
 void Application::OnMouseButtonUp(SDL_MouseButtonEvent event)
 {
-    if (event.button == SDL_BUTTON_LEFT)
-        orbiting = false;
+    // button state handled inside motion events
+    (void)event;
 }
 
-void Application::OnMouseMove(SDL_MouseButtonEvent event)
+void Application::OnMouseMove(SDL_MouseMotionEvent event)
 {
     if (!cam) return;
-    if (!orbiting) return;
 
-    // delta in pixels (SDL origin top-left)
-    float dx = (float)event.x - mouse_position.x;
-    float dy = (float)event.y - mouse_position.y;
+    // relative motion values from input device
+    float dx = (float)event.xrel;
+    float dy = (float)event.yrel;
 
-    mouse_position = Vector2((float)event.x, (float)event.y);
+    // normalized values kept for future use
+    float sx = (window_width  > 0) ? (dx / (float)window_width)  : 0.f;
+    float sy = (window_height > 0) ? (dy / (float)window_height) : 0.f;
+    (void)sx;
+    (void)sy;
 
-    // Orbit only while left button is held
-    orbitYaw -= dx * (orbitSpeed/8); // we divided by 8 to make it a bit slower!
-    orbitPitch += dy * (orbitSpeed/8);
+    // middle drag rotates models
+    if (event.state & SDL_BUTTON_MMASK)
+    {
+        modelYaw   += dx * modelRotateSpeed;
+        modelPitch += dy * modelRotateSpeed;
 
-    UpdateCameraFromOrbit();
+        for (auto* e : entities)
+            e->SetUserRotation(modelYaw, modelPitch);
+    }
+
+    // left drag orbits camera
+    if (event.state & SDL_BUTTON_LMASK)
+    {
+        orbitYaw   -= dx * orbitSpeed;
+        orbitPitch += dy * orbitSpeed;
+
+        UpdateCameraFromOrbit();
+    }
+
+    // right drag pans camera target
+    if (event.state & SDL_BUTTON_RMASK)
+    {
+        Vector3 forward = (cam->center - cam->eye).Normalize();
+        Vector3 right   = forward.Cross(cam->up).Normalize();
+        Vector3 up      = right.Cross(forward).Normalize();
+
+        // compute world movement per pixel based on distance and fov
+        float dist = (cam->eye - cam->center).Length();
+        float fovRad = cam->fov * (PI / 180.0f);
+        float worldHeight = 2.0f * dist * tanf(fovRad * 0.5f);
+        float worldPerPixel = worldHeight / (float)std::max(window_height, 1);
+
+        // move center in camera plane
+        Vector3 delta = (right * (-dx) + up * (dy)) * worldPerPixel;
+        cam->center = cam->center + delta;
+
+        UpdateCameraFromOrbit();
+    }
 }
 
 void Application::OnWheel(SDL_MouseWheelEvent event)
 {
     if (!cam) return;
 
-    // zoom changes orbit distance
-    orbitDist -= event.preciseY * zoomSpeed;
-    orbitDist = Clamp(orbitDist, 0.5f, 50.0f);
+    // scroll delta clamped to avoid extreme zoom jumps
+    float dy = (float)event.preciseY;
+    dy = Clamp(dy, -3.0f, 3.0f);
 
+    // exponential zoom factor applied to orbit distance
+    float zoomFactor = expf(-dy * zoomSpeed);
+    orbitDist *= zoomFactor;
+
+    orbitDist = Clamp(orbitDist, 0.6f, 25.0f);
     UpdateCameraFromOrbit();
 }
 
 void Application::OnFileChanged(const char* filename)
 {
+    // reload shader when file changes
     Shader::ReloadSingleShader(filename);
 }
