@@ -46,7 +46,7 @@ void Application::UpdateCameraFromOrbit()
     if (!cam) return;
 
     orbitPitch = Clamp(orbitPitch, -1.5f, 1.5f);
-    orbitDist  = std::max(0.1f, orbitDist);
+    orbitDist = std::max(0.1f, orbitDist);
 
     float cp = cosf(orbitPitch);
 
@@ -55,8 +55,10 @@ void Application::UpdateCameraFromOrbit()
     offset.y = orbitDist * sinf(orbitPitch);
     offset.z = orbitDist * cp * sinf(orbitYaw);
 
-    cam->up  = Vector3(0, 1, 0);
+    cam->up = Vector3(0, 1, 0);
     cam->eye = cam->center + offset;
+
+    cam->LookAt(cam->eye, cam->center, Vector3(0, 1, 0));
 
     cam->UpdateViewMatrix();
 }
@@ -74,10 +76,12 @@ void Application::Init(void)
 
     // set camera pose (ONLY ONCE)
     cam->LookAt(
-        Vector3(1.0f, 0.3f, 0.5f),
-        Vector3(0.1f, 0.2f, 0.8f),
+        Vector3(2.0f, 0.5f, 0.5f),
+        Vector3(-0.2f, -0.8f, 0.8f),
         Vector3(0.0f, 1.0f, 0.0f)
     );
+
+    cam->UpdateViewMatrix();
 
     // set projection
     cam->SetPerspective(60.0f, aspect, 0.1f, 100.0f);
@@ -104,7 +108,6 @@ void Application::Init(void)
         tex = nullptr;
     }
 
-
     // setting the meshes in the entity class
     int numberEntities = 3;         // >= 3 for mode 2
     entities.reserve(numberEntities);
@@ -116,9 +119,15 @@ void Application::Init(void)
         T.MakeTranslationMatrix(i * 2.0f - 2.0f, 0.0f, 0.0f);
 
         Matrix44 R;
-        R.MakeRotationMatrix(-PI * 0.5f, Vector3(1,0,0));
+        R.MakeRotationMatrix(-PI, Vector3(0,0,1));
+        //R.MakeRotationMatrix(-PI/2, Vector3(1, 0, 0));
+        //R.MakeRotationMatrix(PI * 0.5f, Vector3(0,1,0));
 
         Matrix44 M = T * R;
+        
+        R.MakeRotationMatrix(-PI / 2, Vector3(1, 0, 0));
+
+        M = M * R;
 
         e->EntityAdd(m, M);
 
@@ -127,8 +136,8 @@ void Application::Init(void)
 
         entities.push_back(e);
     }
-
     
+    //drawMode = DRAW_MULTI;
     drawMode = DRAW_SINGLE;
     currentProp = PROP_FOV;
 }
@@ -173,7 +182,7 @@ void Application::Update(float seconds_elapsed)
     if (drawMode == DRAW_MULTI)
     {
         for (auto* e : entities)
-            e->Update(seconds_elapsed);
+            e->Update(seconds_elapsed/2);
     }
 }
 
@@ -292,7 +301,6 @@ void Application::OnKeyPressed(SDL_KeyboardEvent event)
     }
 }
 
-
 void Application::OnMouseButtonDown(SDL_MouseButtonEvent event)
 {
     if (!cam) return;
@@ -322,13 +330,11 @@ void Application::OnMouseButtonDown(SDL_MouseButtonEvent event)
     }
 }
 
-
 void Application::OnMouseButtonUp(SDL_MouseButtonEvent event)
 {
     if (event.button == SDL_BUTTON_LEFT)
         orbiting = false;
 }
-
 
 void Application::OnMouseMove(SDL_MouseButtonEvent event)
 {
@@ -342,8 +348,8 @@ void Application::OnMouseMove(SDL_MouseButtonEvent event)
     mouse_position = Vector2((float)event.x, (float)event.y);
 
     // Orbit only while left button is held
-    orbitYaw   -= dx * orbitSpeed;
-    orbitPitch += dy * orbitSpeed;
+    orbitYaw -= dx * (orbitSpeed/8); // we divided by 8 to make it a bit slower!
+    orbitPitch += dy * (orbitSpeed/8);
 
     UpdateCameraFromOrbit();
 }

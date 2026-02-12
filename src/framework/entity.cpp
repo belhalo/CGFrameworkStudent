@@ -169,6 +169,7 @@ void Entity::Update(float seconds_elapsed)
     total += seconds_elapsed;
 
     Matrix44 R;
+    //R.MakeTranslationMatrix(70, 10-total, 0);
     R.MakeRotationMatrix(total, Vector3(0,1,0)); // radians
 
     modelMatrix = R * baseMatrix;

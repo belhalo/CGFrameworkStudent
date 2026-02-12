@@ -107,7 +107,6 @@ void Mesh::CreateCube(float size)
 	vertices.clear();
 	normals.clear();
 	uvs.clear();
-
 	
 	vertices.push_back(Vector3(size,  size, size));
 	vertices.push_back(Vector3(size,  size, -size));

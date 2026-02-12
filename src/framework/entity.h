@@ -21,8 +21,6 @@
     - render does pipeline:
         local -> world -> clip -> screen -> rasterize
 */
-
-
 class Entity {
 private:
     // lab2

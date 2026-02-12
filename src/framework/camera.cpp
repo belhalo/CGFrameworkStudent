@@ -90,7 +90,7 @@ void Camera::UpdateViewMatrix()
 
     // Matrix44::M is indexed as M[column][row]
     // So columns store the basis vectors, and column 3 stores translation
-
+	
     // Column 0 = right (s)
     view_matrix.M[0][0] =  s.x;
     view_matrix.M[0][1] =  s.y;
@@ -117,8 +117,6 @@ void Camera::UpdateViewMatrix()
 
     UpdateViewProjectionMatrix();
 }
-
-
 
 // Create a projection matrix
 void Camera::UpdateProjectionMatrix()
@@ -155,7 +153,6 @@ void Camera::UpdateProjectionMatrix()
 
     UpdateViewProjectionMatrix();
 }
-
 
 void Camera::UpdateViewProjectionMatrix()
 {
