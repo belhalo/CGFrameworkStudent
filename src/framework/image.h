@@ -1,13 +1,3 @@
-/*
-	+ This file defines the class Image that allows to manipulate images.
-	+ It defines all the need operators for Color and Image
- 
- - Stores a CPU framebuffer (Color per pixel)
- - Provides drawing primitives (line, rect, triangle, etc.)
- - Lab3 adds a triangle rasterizer using barycentric interpolation:
-     * Interpolate vertex colors across the triangle
-*/
-
 #pragma once
 
 #include <string.h>
@@ -15,107 +5,135 @@
 #include <iostream>
 #include "framework.h"
 
-//remove unsafe warnings
 #ifndef _CRT_SECURE_NO_WARNINGS
 #define _CRT_SECURE_NO_WARNINGS
 #pragma warning(disable:4996)
 #endif
 
 class FloatImage;
-class Entity;
-class Camera;
 
-// Image: RGB framebuffer in CPU memory
-// A matrix of pixels
+// lab1
+// image represents cpu framebuffer storing rgb pixels
+// used for drawing primitives and final display output
+// lab3 extends usage with triangle rasterization and zbuffer interaction
 class Image
 {
-	// A general struct to store all the information about a TGA file
-	typedef struct sTGAInfo {
-		unsigned int width;
-		unsigned int height;
-		unsigned int bpp; // Bits per pixel
-		unsigned char* data; // Bytes with the pixel information
-	} TGAInfo;
+    // lab1
+    // internal tga loading helper storing image metadata and raw data pointer
+    typedef struct sTGAInfo {
+        unsigned int width;
+        unsigned int height;
+        unsigned int bpp;
+        unsigned char* data;
+    } TGAInfo;
 
 public:
-	unsigned int width;
-	unsigned int height;
-	unsigned int bytes_per_pixel = 3; // Bits per pixel (rgb)
-
-	Color* pixels;
-
-	// Constructors / copy / assign
-	Image();
-	Image(unsigned int width, unsigned int height);
-	Image(const Image& c);
-	Image& operator = (const Image& c); // Assign operator
-
-	// Destructor
-	~Image();
-    
-    // sends CPU pixels to OpenGL window
-	void Render();
-
-	// Get the pixel at position x,y
-	Color GetPixel(unsigned int x, unsigned int y) const { return pixels[ y * width + x ]; }
-	Color& GetPixelRef(unsigned int x, unsigned int y)	{ return pixels[ y * width + x ]; }
-    
-    // safe version (clamps coords)
-	Color GetPixelSafe(unsigned int x, unsigned int y) const {
-		x = clamp((unsigned int)x, 0, width-1); 
-		y = clamp((unsigned int)y, 0, height-1); 
-		return pixels[ y * width + x ]; 
-	}
-
-	// Set the pixel at position x,y with value C (bounds check)
-	void SetPixel(unsigned int x, unsigned int y, const Color& c) { if(x < 0 || x > width-1) return; if(y < 0 || y > height-1) return; pixels[ y * width + x ] = c; }
-    // no bounds check
-	inline void SetPixelUnsafe(unsigned int x, unsigned int y, const Color& c) { pixels[ y * width + x ] = c; }
-
-    // resize without scaling content (keeps top left area)
-	void Resize(unsigned int width, unsigned int height);
-    
-    // resize scaling existing content
-	void Scale(unsigned int width, unsigned int height);
-	
-    // flip image vertically (for textures)
-	void FlipY();
-
-	// Fill the image with the color C
-	void Fill(const Color& c) { for(unsigned int pos = 0; pos < width*height; ++pos) pixels[pos] = c; }
-
-	// Returns a new image with the area from (startx,starty) of size width,height
-    // extract sub-rectangle of image
-	Image GetArea(unsigned int start_x, unsigned int start_y, unsigned int width, unsigned int height);
-
-	// Save or load images from the hard drive
-	bool LoadPNG(const char* filename, bool flip_y = true);
-	bool LoadTGA(const char* filename, bool flip_y = false);
-	bool SaveTGA(const char* filename);
+    // lab1
+    // image resolution and color storage parameters
+    unsigned int width = 0;
+    unsigned int height = 0;
+    unsigned int bytes_per_pixel = 3;
 
     // lab1
-	// Draws lines (using DDA algorithm!)
-	void DrawLineDDA(int x0, int y0, int x1, int y1, const Color& c);
+    // pointer to pixel array, stored row major
+    Color* pixels = nullptr;
 
     // lab1
-	// Draws a rectangle
-	void DrawRect(int x, int y, int w, int h, const Color& borderColor, int borderWidth, bool isFilled, const Color& fillColor);
-    
-	// Draws a triangle
-	void DrawTriangle(const Vector2& p0, const Vector2& p1, const Vector2& p2, const Color& borderColor, bool isFilled, const Color& fillColor);
-    
+    // constructors and memory management functions
+    Image();
+    Image(unsigned int width, unsigned int height);
+    Image(const Image& c);
+    Image& operator = (const Image& c);
+    ~Image();
+
+    // lab1
+    // upload framebuffer content to window or gpu texture
+    void Render();
+
+    // lab1
+    // direct pixel access without bounds checking
+    Color GetPixel(unsigned int x, unsigned int y) const { return pixels[y * width + x]; }
+    Color& GetPixelRef(unsigned int x, unsigned int y) { return pixels[y * width + x]; }
+
+    // lab1
+    // safe pixel read with clamping to valid image range
+    Color GetPixelSafe(unsigned int x, unsigned int y) const
+    {
+        x = clamp(x, 0u, width - 1);
+        y = clamp(y, 0u, height - 1);
+        return pixels[y * width + x];
+    }
+
+    // lab1
+    // safe pixel write ignoring out of bounds coordinates
+    void SetPixel(unsigned int x, unsigned int y, const Color& c)
+    {
+        if (x >= width) return;
+        if (y >= height) return;
+        pixels[y * width + x] = c;
+    }
+
+    // lab1
+    // fast pixel write without bounds checks
+    inline void SetPixelUnsafe(unsigned int x, unsigned int y, const Color& c)
+    {
+        pixels[y * width + x] = c;
+    }
+
+    // lab1
+    // resize image allocating new pixel storage
+    void Resize(unsigned int width, unsigned int height);
+
+    // lab1
+    // scale image to new resolution using resampling
+    void Scale(unsigned int width, unsigned int height);
+
+    // lab1
+    // vertical flip used after loading textures or images
+    void FlipY();
+
+    // lab1
+    // fill entire image with single color
+    void Fill(const Color& c)
+    {
+        for (unsigned int pos = 0; pos < width * height; ++pos)
+            pixels[pos] = c;
+    }
+
+    // lab1
+    // copy rectangular region from image
+    Image GetArea(unsigned int start_x, unsigned int start_y, unsigned int width, unsigned int height);
+
+    // lab1
+    // load png image into pixel storage
+    bool LoadPNG(const char* filename, bool flip_y = true);
+
+    // lab1
+    // load tga image optionally flipping vertically
+    bool LoadTGA(const char* filename, bool flip_y = false);
+
+    // lab1
+    // save image as tga file
+    bool SaveTGA(const char* filename);
+
+    // lab1
+    // primitive drawing functions for early labs
+    void DrawLineDDA(int x0, int y0, int x1, int y1, const Color& c);
+    void DrawRect(int x, int y, int w, int h, const Color& borderColor, int borderWidth, bool isFilled, const Color& fillColor);
+    void DrawTriangle(const Vector2& p0, const Vector2& p1, const Vector2& p2, const Color& borderColor, bool isFilled, const Color& fillColor);
+    void DrawCircle(int cx, int cy, int radius, const Color& borderColor, int borderWidth, bool isFilled, const Color& fillColor);
+    void DrawImage(const Image& image, int x, int y);
+
     // lab3
-    // version1: no texture
+    // barycentric triangle rasterization with color interpolation and optional zbuffer
     void DrawTriangleInterpolated(
         const Vector3& p0, const Vector3& p1, const Vector3& p2,
         const Color& c0, const Color& c1, const Color& c2,
         FloatImage* zbuffer
     );
-    // version2: with texture
-    // - If texture != nullptr and interpolateUVs=true:
-    //      barycentrically interpolate UV per pixel, then sample texture
-    // - If interpolateUVs=false:
-    //      "wrong mode": uses only uv0 for the whole triangle
+
+    // lab3
+    // triangle rasterization with texture sampling and optional perspective correct uv interpolation
     void DrawTriangleInterpolated(
         const Vector3& p0, const Vector3& p1, const Vector3& p2,
         const Color& c0, const Color& c1, const Color& c2,
@@ -124,59 +142,68 @@ public:
         const Vector2& uv0, const Vector2& uv1, const Vector2& uv2,
         bool interpolateUVs
     );
-    
+
+#ifndef IGNORE_LAMBDAS
     // lab1
-    // Draws a circle using Midpoint Circle algorithm
-    void DrawCircle(int cx, int cy, int radius, const Color& borderColor, int borderWidth, bool isFilled, const Color& fillColor);
-
-	// Draws the selected image
-	void DrawImage(const Image& image, int x, int y);
-
-	// Used to easy code
-	#ifndef IGNORE_LAMBDAS
-
-	// Applies an algorithm to every pixel in an image
-	// you can use lambda sintax:   img.forEachPixel( [](Color c) { return c*2; });
-	// or callback sintax:   img.forEachPixel( mycallback ); //the callback has to be Color mycallback(Color c) { ... }
-	template <typename F>
-	Image& ForEachPixel( F callback )
-	{
-		for(unsigned int pos = 0; pos < width*height; ++pos)
-			pixels[pos] = callback(pixels[pos]);
-		return *this;
-	}
-	#endif
+    // apply callback function to every pixel and replace value
+    template <typename F>
+    Image& ForEachPixel(F callback)
+    {
+        for (unsigned int pos = 0; pos < width * height; ++pos)
+            pixels[pos] = callback(pixels[pos]);
+        return *this;
+    }
+#endif
 };
 
-// Image storing one float per pixel instead of a 3 or 4 component Color
-// 1 float per pixel (used as z-buffer in lab3)
+// lab3
+// floatimage used as depth buffer storing one float per pixel
+// smaller depth means pixel closer to camera
 class FloatImage
 {
 public:
-	unsigned int width;
-	unsigned int height;
-	float* pixels;
+    // lab3
+    // depth buffer resolution and storage
+    unsigned int width = 0;
+    unsigned int height = 0;
+    float* pixels = nullptr;
 
-	// CONSTRUCTORS 
-	FloatImage() { width = height = 0; pixels = NULL; }
-	FloatImage(unsigned int width, unsigned int height);
-	FloatImage(const FloatImage& c);
-	FloatImage& operator = (const FloatImage& c); //assign operator
+    FloatImage() {}
+    FloatImage(unsigned int width, unsigned int height);
+    FloatImage(const FloatImage& c);
+    FloatImage& operator = (const FloatImage& c);
+    ~FloatImage();
 
-	//destructor
-	~FloatImage();
+    // lab3
+    // fill entire depth buffer with constant value
+    void Fill(const float& v)
+    {
+        for (unsigned int pos = 0; pos < width * height; ++pos)
+            pixels[pos] = v;
+    }
 
-    // fill z-buffer with some big value
-	void Fill(const float& v) { for (unsigned int pos = 0; pos < width * height; ++pos) pixels[pos] = v; }
+    // lab3
+    // direct pixel read and write access
+    float GetPixel(unsigned int x, unsigned int y) const { return pixels[y * width + x]; }
+    float& GetPixelRef(unsigned int x, unsigned int y) { return pixels[y * width + x]; }
 
-	//get the pixel at position x,y
-	float GetPixel(unsigned int x, unsigned int y) const { return pixels[y * width + x]; }
-	float& GetPixelRef(unsigned int x, unsigned int y) { return pixels[y * width + x]; }
+    // lab3
+    // safe pixel write with bounds check
+    void SetPixel(unsigned int x, unsigned int y, const float& v)
+    {
+        if (x >= width) return;
+        if (y >= height) return;
+        pixels[y * width + x] = v;
+    }
 
-	//set the pixel at position x,y with value C
-	void SetPixel(unsigned int x, unsigned int y, const float& v) { if (x < 0 || x > width - 1) return; if (y < 0 || y > height - 1) return; pixels[y * width + x] = v; }
-	inline void SetPixelUnsafe(unsigned int x, unsigned int y, const float& v) { pixels[y * width + x] = v; }
+    // lab3
+    // fast write without bounds checking
+    inline void SetPixelUnsafe(unsigned int x, unsigned int y, const float& v)
+    {
+        pixels[y * width + x] = v;
+    }
 
-    // keep the top left (like image::resize)
-	void Resize(unsigned int width, unsigned int height);
+    // lab3
+    // resize depth buffer allocating new storage
+    void Resize(unsigned int width, unsigned int height);
 };

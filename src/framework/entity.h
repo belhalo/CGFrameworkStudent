@@ -1,78 +1,76 @@
 #pragma once
-#include <string>
-#include <iostream>
-#include <fstream>
-#include <algorithm>
-
 #include "framework.h"
 #include "image.h"
 #include "mesh.h"
 #include "camera.h"
-#include "main/includes.h"
 
-/*
-    Entity (Lab2 + Lab3):
-    - represents an object in the scene
-    - holds:
-        * Mesh* (geometry: vertices + uvs)
-        * modelMatrix (transform local -> world)
-        * baseMatrix (original placement, used so rotation keeps translation)
-        * texture (Lab3)
-    - render does pipeline:
-        local -> world -> clip -> screen -> rasterize
-*/
+// lab2
+// entity holds renderable object state, mesh pointer shared across instances, transform matrices define local to world placement
+
+// lab3
+// entity optionally holds texture pointer, render can use zbuffer and uv interpolation for textured triangle rasterization
+
 class Entity {
 private:
     // lab2
-    // mesh pointer so multiple entities can share same loaded mesh in memory
+    // mesh pointer shared across entities, avoids loading same geometry multiple times
     Mesh* mesh = nullptr;
 
     // lab2
-    // model matrix for this entity
+    // modelMatrix is current transform used for rendering, baseMatrix stores initial placement used for animation
     Matrix44 modelMatrix;
-
-    // lab2
-    // base matrix = original transform
-    // used so when we rotate we still keep og translation
     Matrix44 baseMatrix;
 
+    // lab2
+    // helper for frustum reject in ndc, reject only when whole triangle is outside same plane
+    // prevents partial triangles disappearing when only one vertex is outside
+    static bool TriangleOutsideNDC(const Vector3& a, const Vector3& b, const Vector3& c);
+
 public:
-    // lab3
-    // selectable render style
+    // lab2
+    // render mode for debugging or final raster, wireframe draws edges, triangles fills pixels
     enum class eRenderMode { WIREFRAME, TRIANGLES };
-    
-    // lab3
-    // default (wireframe as debug)
     eRenderMode renderMode = eRenderMode::TRIANGLES;
 
     // lab3
-    // toggles controlled by Application keys
-    bool useTexture      = false;  // key 'T'
-    bool useZBuffer      = true;   // key 'Z'
-    bool interpolateUVs  = true;   // key 'C' (true=correct UV barycentric)
+    // feature toggles controlled from application key input
+    bool useTexture = false;     // 'T'
+    bool useZBuffer = true;      // 'Z'
+    bool interpolateUVs = true;  // 'C' true means correct uv interpolation
+
+    // lab2
+    // user controlled rotation applied on top of modelMatrix, updated from mouse drag
+    float userYaw = 0.f;
+    float userPitch = 0.f;
+    void SetUserRotation(float yaw, float pitch) { userYaw = yaw; userPitch = pitch; }
+
+    // lab2
+    // time based animation state, phase offsets each entity to avoid identical motion
+    float totalTime = 0.f;
+    float phase = 0.f;
 
     // lab3
-    // texture (loaded once and shared)
+    // texture pointer, can be shared across entities, sampled using uv data in mesh
     Image* texture = nullptr;
 
-    Entity() {
+    Entity()
+    {
+        // lab2
+        // identity transforms before placement assigned in entityadd
         modelMatrix.SetIdentity();
         baseMatrix.SetIdentity();
     }
 
     // lab2
-    // initialize mesh pointer and starting transform
+    // assign mesh pointer and initial transform, baseMatrix used to preserve translation while animating rotation
     void EntityAdd(Mesh* m, const Matrix44& M);
 
-    // lab3
-    // render needs a zbuffer pointer (may be null if occlusion disabled)
+    // lab2
+    // cpu render pipeline, local to world, world to ndc, ndc to screen, then wireframe or triangle raster
+    // lab3 adds optional zbuffer and texture sampling
     void Render(Image* framebuffer, Camera* camera, FloatImage* zbuffer);
 
     // lab2
-    // animate by rotating over time
+    // update modelMatrix for animated mode, typically rotation over time using totalTime and phase
     void Update(float seconds_elapsed);
-
-    // lab2/3
-    // simple frustum reject in clip space
-    bool isInsideClip(Vector3 v);
 };

@@ -1,154 +1,177 @@
 #include "camera.h"
+#include "framework.h"
 
 #include "main/includes.h"
 #include <iostream>
+#include <cmath>
+
+// lab1
+// camera holds view and projection math shared across labs, later labs call projectvector and use viewprojection matrix
 
 Camera::Camera()
 {
-	view_matrix.SetIdentity();
-	SetOrthographic(-1,1,1,-1,-1,1);
+    // lab1
+    // initialize matrices to valid identity, start with orthographic so camera is usable even before perspective set
+    view_matrix.SetIdentity();
+    SetOrthographic(-1, 1, 1, -1, -1, 1);
 }
 
 Vector3 Camera::GetLocalVector(const Vector3& v)
 {
-	Matrix44 iV = view_matrix;
-	if (iV.Inverse() == false)
-		std::cout << "Matrix Inverse error" << std::endl;
-	Vector3 result = iV.RotateVector(v);
-	return result;
+    // lab1
+    // convert a vector expressed in camera space into world space using inverse view rotation
+    Matrix44 iV = view_matrix;
+    if (iV.Inverse() == false)
+        std::cout << "Matrix Inverse error" << std::endl;
+
+    Vector3 result = iV.RotateVector(v);
+    return result;
 }
 
 Vector3 Camera::ProjectVector(Vector3 pos)
 {
-	Vector4 pos4 = Vector4(pos.x, pos.y, pos.z, 1.0);
-	Vector4 result = viewprojection_matrix * pos4;
-	if (type == ORTHOGRAPHIC)
-		return result.GetVector3();
-	else
-		return result.GetVector3() / result.w;
+    // lab2
+    // project world space position into ndc space using viewprojection, perspective divide for perspective camera
+    Vector4 pos4 = Vector4(pos.x, pos.y, pos.z, 1.0f);
+    Vector4 result = viewprojection_matrix * pos4;
+
+    if (type == ORTHOGRAPHIC)
+        return result.GetVector3();
+
+    return result.GetVector3() / result.w; // NDC in [-1,1]
 }
 
 void Camera::Rotate(float angle, const Vector3& axis)
 {
-	Matrix44 R;
-	R.MakeRotationMatrix(angle, axis);
-	Vector3 new_front = R * (center - eye);
-	center = eye + new_front;
-	UpdateViewMatrix();
+    // lab2
+    // rotate camera direction by rotating vector from eye to center around axis, eye stays fixed
+    Matrix44 R;
+    R.MakeRotationMatrix(angle, axis);
+    Vector3 new_front = R * (center - eye);
+    center = eye + new_front;
+    UpdateViewMatrix();
 }
 
 void Camera::Move(Vector3 delta)
 {
-	Vector3 localDelta = GetLocalVector(delta);
-	eye = eye - localDelta;
-	center = center - localDelta;
-	UpdateViewMatrix();
+    // lab2
+    // move camera in local camera axes, delta is interpreted as camera local and converted to world
+    Vector3 localDelta = GetLocalVector(delta);
+    eye = eye - localDelta;
+    center = center - localDelta;
+    UpdateViewMatrix();
 }
 
 void Camera::SetOrthographic(float left, float right, float top, float bottom, float near_plane, float far_plane)
 {
-	type = ORTHOGRAPHIC;
+    // lab1
+    // set orthographic parameters and rebuild projection matrix
+    type = ORTHOGRAPHIC;
 
-	this->left = left;
-	this->right = right;
-	this->top = top;
-	this->bottom = bottom;
-	this->near_plane = near_plane;
-	this->far_plane = far_plane;
+    this->left = left;
+    this->right = right;
+    this->top = top;
+    this->bottom = bottom;
+    this->near_plane = near_plane;
+    this->far_plane = far_plane;
 
-	UpdateProjectionMatrix();
+    UpdateProjectionMatrix();
 }
 
 void Camera::SetPerspective(float fov, float aspect, float near_plane, float far_plane)
 {
-	type = PERSPECTIVE;
+    // lab2
+    // set perspective parameters and rebuild projection matrix, used by raster pipeline in lab2 and lab3
+    type = PERSPECTIVE;
 
-	this->fov = fov;
-	this->aspect = aspect;
-	this->near_plane = near_plane;
-	this->far_plane = far_plane;
+    this->fov = fov;
+    this->aspect = aspect;
+    this->near_plane = near_plane;
+    this->far_plane = far_plane;
 
-	UpdateProjectionMatrix();
+    UpdateProjectionMatrix();
 }
 
 void Camera::LookAt(const Vector3& eye, const Vector3& center, const Vector3& up)
 {
-	this->eye = eye;
-	this->center = center;
-	this->up = up;
+    // lab2
+    // set camera pose then rebuild view matrix
+    this->eye = eye;
+    this->center = center;
+    this->up = up;
 
-	UpdateViewMatrix();
+    UpdateViewMatrix();
 }
 
 void Camera::UpdateViewMatrix()
 {
+    // lab2
+    // build view matrix from camera basis and translation, result transforms world to camera space
     view_matrix.SetIdentity();
+    rotation_matrix.SetIdentity();
+    translation_matrix.SetIdentity();
 
-    Vector3 f = (center - eye).Normalize();   // forward
-    Vector3 s = f.Cross(up).Normalize();      // right
-    Vector3 u = s.Cross(f);                   // real up
+    // lab2
+    // forward points from center to eye in this convention, camera looks along negative forward
+    Vector3 forward = eye - center;
+    forward.Normalize();
 
-    // Matrix44::M is indexed as M[column][row]
-    // So columns store the basis vectors, and column 3 stores translation
-	
-    // Column 0 = right (s)
-    view_matrix.M[0][0] =  s.x;
-    view_matrix.M[0][1] =  s.y;
-    view_matrix.M[0][2] =  s.z;
-    view_matrix.M[0][3] = -s.Dot(eye);
+    // lab2
+    // right and top define orthonormal basis using cross products, assumes up not parallel to forward
+    Vector3 right = up.Cross(forward);
+    Vector3 top = forward.Cross(right);
 
-    // Column 1 = up (u)
-    view_matrix.M[1][0] =  u.x;
-    view_matrix.M[1][1] =  u.y;
-    view_matrix.M[1][2] =  u.z;
-    view_matrix.M[1][3] = -u.Dot(eye);
+    // lab2
+    // store basis into rotation matrix, matrix storage is column major in this framework
+    rotation_matrix.M[0][0] = right.x;
+    rotation_matrix.M[1][0] = right.y;
+    rotation_matrix.M[2][0] = right.z;
 
-    // Column 2 = -forward (-f)
-    view_matrix.M[2][0] = -f.x;
-    view_matrix.M[2][1] = -f.y;
-    view_matrix.M[2][2] = -f.z;
-    view_matrix.M[2][3] =  f.Dot(eye);
+    rotation_matrix.M[0][1] = top.x;
+    rotation_matrix.M[1][1] = top.y;
+    rotation_matrix.M[2][1] = top.z;
 
-    // Column 3 = (0,0,0,1)
-    view_matrix.M[3][0] = 0.f;
-    view_matrix.M[3][1] = 0.f;
-    view_matrix.M[3][2] = 0.f;
-    view_matrix.M[3][3] = 1.f;
+    rotation_matrix.M[0][2] = forward.x;
+    rotation_matrix.M[1][2] = forward.y;
+    rotation_matrix.M[2][2] = forward.z;
+
+    // lab2
+    // translate world by negative eye so camera is treated as origin in camera space
+    translation_matrix.MakeTranslationMatrix(-eye.x, -eye.y, -eye.z);
+
+    // lab2
+    // view matrix is rotation times translation in this convention
+    view_matrix = rotation_matrix * translation_matrix;
 
     UpdateViewProjectionMatrix();
 }
 
-// Create a projection matrix
 void Camera::UpdateProjectionMatrix()
 {
+    // lab2
+    // build projection matrix, perspective is required for lab2 and lab3 pipeline
     projection_matrix.SetIdentity();
 
     if (type == PERSPECTIVE)
     {
-        float fRad = fov * (PI / 180.0f);
-        float f = 1.0f / tanf(fRad * 0.5f);
+        // lab2
+        // f is cotangent of half fov, scales x and y into clip space
+        float f = 1.0f / tanf((fov * 0.5f) * (PI / 180.0f));
 
-        // Column-major (M[col][row])
-
-        projection_matrix.M[0][0] = f / aspect;
-        projection_matrix.M[1][1] = f;
-
-        projection_matrix.M[2][2] = (far_plane + near_plane) / (near_plane - far_plane);
-        projection_matrix.M[2][3] = (2.0f * far_plane * near_plane) / (near_plane - far_plane);
-
-        projection_matrix.M[3][2] = -1.0f;
-        projection_matrix.M[3][3] = 0.0f;
+        // lab2
+        // standard perspective projection, maps camera space into clip space, z mapped using near and far
+        projection_matrix.Set(
+            f / aspect, 0, 0, 0,
+            0, f, 0, 0,
+            0, 0, (far_plane + near_plane) / (near_plane - far_plane), (2 * far_plane * near_plane) / (near_plane - far_plane),
+            0, 0, -1.0f, 0
+        );
     }
     else
     {
-        projection_matrix.M[0][0] = 2.f / (right - left);
-        projection_matrix.M[1][1] = 2.f / (top - bottom);
-        projection_matrix.M[2][2] = -2.f / (far_plane - near_plane);
-
-        projection_matrix.M[3][0] = -(right + left) / (right - left);
-        projection_matrix.M[3][1] = -(top + bottom) / (top - bottom);
-        projection_matrix.M[3][2] = -(far_plane + near_plane) / (far_plane - near_plane);
-        projection_matrix.M[3][3] = 1.f;
+        // lab1
+        // orthographic matrix not implemented here, current labs use perspective in application init
+        // orthographic still available via SetExampleProjectionMatrix for reference testing
     }
 
     UpdateViewProjectionMatrix();
@@ -156,38 +179,41 @@ void Camera::UpdateProjectionMatrix()
 
 void Camera::UpdateViewProjectionMatrix()
 {
-	viewprojection_matrix = projection_matrix * view_matrix;
+    // lab2
+    // cache combined matrix so projectvector can be a single multiply plus optional perspective divide
+    viewprojection_matrix = projection_matrix * view_matrix;
 }
 
 Matrix44 Camera::GetViewProjectionMatrix()
 {
-	UpdateViewMatrix();
-	UpdateProjectionMatrix();
-
-	return viewprojection_matrix;
+    // lab2
+    // return latest combined matrix, recompute both to stay consistent with current camera parameters
+    UpdateViewMatrix();
+    UpdateProjectionMatrix();
+    return viewprojection_matrix;
 }
 
-// The following methods have been created for testing.
-// Do not modify them.
+// lab1
+// opengl reference functions used for checking against fixed pipeline results, not part of lab implementation
 
 void Camera::SetExampleViewMatrix()
 {
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-	gluLookAt(eye.x, eye.y, eye.z, center.x, center.y, center.z, up.x, up.y, up.z);
-	glGetFloatv(GL_MODELVIEW_MATRIX, view_matrix.m );
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    gluLookAt(eye.x, eye.y, eye.z, center.x, center.y, center.z, up.x, up.y, up.z);
+    glGetFloatv(GL_MODELVIEW_MATRIX, view_matrix.m);
 }
 
 void Camera::SetExampleProjectionMatrix()
 {
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
 
-	if (type == PERSPECTIVE)
-		gluPerspective(fov, aspect, near_plane, far_plane);
-	else
-		glOrtho(left,right,bottom,top,near_plane,far_plane);
+    if (type == PERSPECTIVE)
+        gluPerspective(fov, aspect, near_plane, far_plane);
+    else
+        glOrtho(left, right, bottom, top, near_plane, far_plane);
 
-	glGetFloatv(GL_PROJECTION_MATRIX, projection_matrix.m );
-	glMatrixMode(GL_MODELVIEW);
+    glGetFloatv(GL_PROJECTION_MATRIX, projection_matrix.m);
+    glMatrixMode(GL_MODELVIEW);
 }
