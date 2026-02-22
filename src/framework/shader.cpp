@@ -313,10 +313,10 @@ void Shader::Release()
 
 void Shader::Enable()
 {
-	/*if (current == this)
-		return;
+	if (current == this)
+		return; 
 
-	current = this;*/
+	current = this;
 
 	glUseProgramObjectARB(program);
 	assert (glGetError() == GL_NO_ERROR);

@@ -5,6 +5,8 @@
 #include "image.h"
 #include "camera.h"
 #include "entity.h"
+#include "shader.h"
+#include "mesh.h"
 
 class Application
 {
@@ -21,6 +23,17 @@ public:
 
     // lab2 camera used for view and projection transforms
     Camera* cam = nullptr;
+
+    // lab4 
+    Shader* shader = nullptr;
+
+    // lab4 quad = four-sided polygon defined by four vertices & edges,
+    // used as fundamental building block for 3d modeling
+    Mesh* quad = nullptr;
+
+    //lab 4 controlers for interactivity
+    int currentTask = 1;    
+    int currentSubTask = 1;
 
     // lab2 scene entities storing meshes transforms and render state
     std::vector<Entity*> entities;
