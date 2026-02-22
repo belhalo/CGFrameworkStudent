@@ -77,9 +77,14 @@ void Application::Init(void)
 {
     std::cout << "Initiating app..." << std::endl;
 
-    // clear framebuffer once at start
-    framebuffer.Fill(Color::BLACK);
+    // clear framebuffer once at start, 
+    // but now using GPU instead of the framebuffer controled by the CPU
+    glClearColor(0.0, 0.0, 0.0, 1.0);
 
+    ////////////////////
+    // CAMERA SETTING //
+    ////////////////////
+ 
     // create camera and configure projection
     cam = new Camera();
     float aspect = (float)window_width / (float)window_height;
@@ -101,6 +106,26 @@ void Application::Init(void)
     orbitYaw = atan2f(d.z, d.x);
     orbitPitch = asinf(d.y / std::max(orbitDist, 0.0001f));
 
+    //download the shader from resourses
+        // - quad.vs VERTEX SHADER
+        // - quad.fs FRAGMENT SHADER
+    //shader = new Shader();
+    //shader->Get("res/shaders/quad.vs", "res/shaders/quad.fs");
+
+    shader = Shader::Get("res/shaders/quad.vs", "res/shaders/quad.fs");
+    if (!shader) {
+        std::cout << "shader cannot be load" << std::endl;
+    }
+
+    // create a quad that will cover the whole screen
+    quad = new Mesh();
+    quad->CreateQuad();
+
+    //////////////////
+    // MODEL SYSTEM //
+    //////////////////
+
+    /*
     // asset container storing mesh and texture pairs
     struct ModelAsset
     {
@@ -179,23 +204,49 @@ void Application::Init(void)
     drawMode = DRAW_SINGLE;
 
     // default camera property selection
-    currentProp = PROP_FOV;
+    currentProp = PROP_FOV;*/
 }
 
 void Application::Render(void)
 {
     // clear framebuffer every frame
-    framebuffer.Fill(Color::BLACK);
+    //glClearColor(0.0, 0.0, 0.0, 1.0);
+    glClearColor(0.5, 0.0, 0.5, 1.0);
 
-    // clear depth buffer large value means far
-    zbuffer.Fill(1e9f);
-
-    if (!cam || entities.empty())
+    // clear the window and the z buffer
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    
+    float aspect = (float)window_width / (float)window_height;
+    
+    // we choose between the tasks
+    if (1 <= currentTask && currentTask <= 3)
     {
-        framebuffer.Render();
-        return;
+        if (shader && quad)
+        {
+            // actives the shader 
+            shader->Enable();
+
+            // set the subtask, task and the aspect (to avoid distortions because of the w, h screen)
+            shader->SetFloat("u_subtask", (float)currentSubTask);
+            shader->SetFloat("u_task", (float)currentTask);
+            shader->SetFloat("u_aspect", aspect);
+
+            // set time for future animations 
+            shader->SetFloat("u_time", time);
+
+            // draws the quad that we have already created
+            quad->Render();
+
+            // desactive the shader
+            shader->Disable();
+        }
+    }
+    else if (currentTask == 4)
+    {
+        // task 2.5!!!
     }
 
+    /*
     // render either single or multiple entities
     if (drawMode == DRAW_SINGLE)
     {
@@ -205,10 +256,7 @@ void Application::Render(void)
     {
         for (int i = 0; i < (int)entities.size(); ++i)
             entities[i]->Render(&framebuffer, cam, &zbuffer);
-    }
-
-    // present framebuffer to window
-    framebuffer.Render();
+    }*/
 }
 
 void Application::Update(float seconds_elapsed)
@@ -229,7 +277,59 @@ void Application::OnKeyPressed(SDL_KeyboardEvent event)
     {
         case SDLK_ESCAPE: exit(0); break;
 
-        // switch to single entity mode
+        // 1 - 4 show tasks1..task4
+        case SDLK_1:
+            currentTask = 1;
+            std::cout << "Mode: ....\n";
+            break;
+        case SDLK_2:
+            currentTask = 2;
+            std::cout << "Mode: ....\n";
+            break;
+        case SDLK_3:
+            currentTask = 3;
+            std::cout << "Mode: ....\n";
+            break;
+        case SDLK_4:
+            currentTask = 4;
+            std::cout << "Mode: ....\n";
+            break;
+
+        // a - f show subtasks1..task6
+        case SDLK_a:
+            currentSubTask = 1;
+            std::cout << "Mode: ....\n";
+            break;
+
+        case SDLK_b:
+            currentSubTask = 2;
+            std::cout << "Mode: ....\n";
+            break;
+
+        case SDLK_c:
+            currentSubTask = 3;
+            std::cout << "Mode: ....\n";
+            break;
+
+        case SDLK_d:
+            currentSubTask = 4;
+            std::cout << "Mode: ....\n";
+            break;
+
+        case SDLK_e:
+            currentSubTask = 5;
+            std::cout << "Mode: ....\n";
+            break;
+
+        case SDLK_f:
+            currentSubTask = 6;
+            std::cout << "Mode: ....\n";
+            break;
+
+        // change from lab4 to lab5
+        case SDLK_l:
+
+        /* // switch to single entity mode
         case SDLK_1:
             drawMode = DRAW_SINGLE;
             std::cout << "Mode: SINGLE\n";
@@ -315,7 +415,7 @@ void Application::OnKeyPressed(SDL_KeyboardEvent event)
                 e->interpolateUVs = !e->interpolateUVs;
             std::cout << "Toggle: interpolateUVs\n";
             break;
-        }
+        }*/
 
         default:
             break;
