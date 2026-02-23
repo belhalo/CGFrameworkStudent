@@ -1,14 +1,10 @@
 varying vec2 v_uv;
 
 void main()
-{	
-	// Remember the UV's range [0.0, 1.0]
-	v_uv = gl_MultiTexCoord0.xy;
+{
+    // UV range is [0.0, 1.0]
+    v_uv = gl_MultiTexCoord0.xy;
 
-	// Rebre les coordenades de textura (UVs)
-	v_uv = gl_MultiTexCoord0.xy;
-
-	// these are two example of tries
-	//gl_Position = vec4(gl_Vertex.xyz, 0.0, 1.0);
-	//gl_Position = vec4(v_uv, 1.0, 1.0);
+    // fullscreen quad is already in clip space ([1, -1])
+    gl_Position = vec4(gl_Vertex.xyz, 1.0);
 }
