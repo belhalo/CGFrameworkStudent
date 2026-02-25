@@ -52,10 +52,9 @@ void Entity::Render(Camera* camera) {
     if (!mesh || !camera || !material) return;
 
     // computing the transformations 
-         // Ry, Rx if we want to have more freedom in the camera mobility
-         //Matrix44 Ry; Ry.MakeRotationMatrix(userYaw, Vector3(0, 1, 0));
-         //Matrix44 Rx; Rx.MakeRotationMatrix(userPitch, Vector3(1, 0, 0));
-    Matrix44 M = modelMatrix;
+    Matrix44 Ry; Ry.MakeRotationMatrix(userYaw, Vector3(0, 1, 0));
+    Matrix44 Rx; Rx.MakeRotationMatrix(userPitch, Vector3(1, 0, 0));
+    Matrix44 M = modelMatrix * Ry * Rx;
 
     // prepare the files to be ready to use by the gpu
     material->Enable();

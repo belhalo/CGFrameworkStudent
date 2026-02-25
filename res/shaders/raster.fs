@@ -5,7 +5,6 @@ varying vec2 v_uv;
 varying vec3 v_world_position;
 
 uniform sampler2D u_texture;
-uniform vec2 u_texel_size;
 
 void main()
 {

@@ -25,11 +25,14 @@ public:
     // camera
     Camera* cam = nullptr;
 
-    // Lab 4
+    // lab 4
     Shader* shader = nullptr;       // quad shader
     Mesh* quad = nullptr;           // fullscreen quad mesh
-    Texture* sourceTex = nullptr;   // texture pointer
-    Image* sourceImage = nullptr;
+
+    Texture* quadTex = nullptr;     // fruits texture for tasks 2.3 and 2.4
+    Texture* annaTex = nullptr;     // obj texture for task 2.5
+
+    Shader* sourceMat = nullptr;    // obj material shader
 
     // interactivity controls
     int currentTask = 1;        // 1..4

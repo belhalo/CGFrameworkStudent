@@ -102,30 +102,29 @@ void Application::Init(void)
     quad = new Mesh();
     quad->CreateQuad();
     
-    // load the fruit image
-    Image sourceImage;
-    if (sourceImage.LoadPNG("images/fruits.png") == false) {
-        std::cout << "Image of fruits not found!" << std::endl;
-    }
-
-    // load the texture
-    sourceTex = Texture::Get("textures/anna_color_specular.tga");
-    if (!sourceTex)
-        std::cout << "could not load source texture\n";
+    // load fruits texture for quad tasks
+    quadTex = Texture::Get("images/fruits.png");
+    if (!quadTex)
+        std::cout << "could not load images/fruits.png\n";
+    
 
     // Lab 4 - render a mesh using gpu
     // create a single entity
     Entity* anna = new Entity();
     anna->mesh = new Mesh();
     anna->mesh->LoadOBJ("meshes/anna.obj");
-    //anna->texture = Texture::Get("textures/anna_normal.tga");
-    anna->texture = Texture::Get("textures/anna_color_specular.tga");
-    anna->material = Shader::Get("shaders/raster.vs", "shaders/raster.fs");
-
-    // check possible errors
-    if (!anna->mesh || !anna->texture || !anna->material) {
-        std::cout << "error while loading anna's" << std::endl;
-    }
+    if (!anna->mesh) std::cout << "could not load source object\n";
+    
+    annaTex = Texture::Get("textures/anna_color_specular.tga");
+    if (!annaTex)
+        std::cout << "could not load source texture\n";
+    anna->texture = annaTex;
+    
+    // load material shader
+    sourceMat = Shader::Get("shaders/raster.vs", "shaders/raster.fs");
+    if (!sourceMat)
+        std::cout << "could not load source shader material\n";
+    anna->material = sourceMat;
 
     // make some transformations to ajust anna's position and scale
     Matrix44 T; Matrix44 Rx; Matrix44 Ry; Matrix44 S;
@@ -143,22 +142,33 @@ void Application::Init(void)
 
 void Application::Render(void)
 {
-    // set clear color before clearing
     if (lab5Scene)
-        glClearColor(0.1f, 0.1f, 0.3f, 1.0f); // placeholder Lab 5
+        glClearColor(0.1f, 0.1f, 0.3f, 1.0f);
     else
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f); // Lab 4
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // if Lab 5 placeholder is active, do nothing else for now
     if (lab5Scene)
         return;
 
     float aspect = (float)window_width / (float)window_height;
 
-    // Lab 4 formulas / filters / transforms rendered on the quad
-    // always render the fullscreen quad for Lab 4 tasks (1..4)
+    // task 4, 2.5 gpu mesh rendering
+    if (currentTask == 4)
+    {
+        glEnable(GL_DEPTH_TEST);
+
+        if (!entities.empty())
+            entities[0]->Render(cam);
+
+        glDisable(GL_DEPTH_TEST);
+        return;
+    }
+
+    // tasks 1..3, quad shader path
+    glDisable(GL_DEPTH_TEST);
+
     if (shader && quad)
     {
         shader->Enable();
@@ -167,30 +177,18 @@ void Application::Render(void)
         shader->SetFloat("u_task", (float)currentTask);
         shader->SetFloat("u_aspect", aspect);
         shader->SetFloat("u_time", time);
-        
-        // give shader texture and texel size 
-        if (sourceTex)
+
+        // tasks 2.2 2.3 2.4 use fruits png
+        if (quadTex)
         {
-            shader->SetTexture("u_texture", sourceTex);
+            shader->SetTexture("u_texture", quadTex);
             shader->SetUniform2("u_texel_size",
-                1.0f / sourceTex->width,
-                1.0f / sourceTex->height
+                1.0f / quadTex->width,
+                1.0f / quadTex->height
             );
         }
-        
-        if (currentTask == 2 || currentTask == 3 || currentTask == 4) {
-            quad->Render();
-        }
-        if (currentTask == 1) {
-            if (!entities.empty()) {
-                // enables the zbuffer to avoid occlusions while rendering
-                glEnable(GL_DEPTH_TEST);
 
-                // render the first entity (anna)
-                entities[0]->Render(cam);
-            }
-        }
-
+        quad->Render();
         shader->Disable();
     }
 }
@@ -206,25 +204,13 @@ void Application::OnKeyPressed(SDL_KeyboardEvent event)
     {
         case SDLK_ESCAPE: exit(0); break;
 
-        // 1–4: select task
-        case SDLK_1:
-            currentTask = 1;
-            currentSubTask = 1;
-            break;
-        case SDLK_2:
-            currentTask = 2;
-            currentSubTask = 1;
-            break;
-        case SDLK_3:
-            currentTask = 3;
-            currentSubTask = 1;
-            break;
-        case SDLK_4:
-            currentTask = 4;
-            currentSubTask = 1;
-            break;
+        // 1..4 map to 2.2 2.3 2.4 2.5
+        case SDLK_1: currentTask = 1; currentSubTask = 1; break; // 2.2
+        case SDLK_2: currentTask = 2; currentSubTask = 1; break; // 2.3
+        case SDLK_3: currentTask = 3; currentSubTask = 1; break; // 2.4
+        case SDLK_4: currentTask = 4; currentSubTask = 1; break; // 2.5
 
-        // a–f: select subtask (1..6)
+        // a..f: select subtask (1..6)
         case SDLK_a: currentSubTask = 1; break;
         case SDLK_b: currentSubTask = 2; break;
         case SDLK_c: currentSubTask = 3; break;
@@ -232,7 +218,6 @@ void Application::OnKeyPressed(SDL_KeyboardEvent event)
         case SDLK_e: currentSubTask = 5; break;
         case SDLK_f: currentSubTask = 6; break;
 
-        // L: switch Lab 4 <-> Lab 5 scene
         case SDLK_l:
             lab5Scene = !lab5Scene;
             break;

@@ -78,7 +78,7 @@ public:
 
     // lab 4
     // gpu render pipeline
-    void Entity::Render(Camera* camera);
+    void Render(Camera* camera);
 
     // lab2
     // update modelMatrix for animated mode, typically rotation over time using totalTime and phase

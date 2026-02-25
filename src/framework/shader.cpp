@@ -161,8 +161,6 @@ bool Shader::HasInfoLog() const
 	return info_log.size() > 0; 
 }
 
-// ******************************************
-
 bool Shader::CompileFromMemory(const std::string& vsm, const std::string& psm)
 {
 	
