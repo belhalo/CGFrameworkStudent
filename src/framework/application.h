@@ -7,6 +7,7 @@
 #include "shader.h"
 #include "mesh.h"
 #include "texture.h"
+#include "image.h"
 
 class Application
 {
@@ -28,6 +29,7 @@ public:
     Shader* shader = nullptr;       // quad shader
     Mesh* quad = nullptr;           // fullscreen quad mesh
     Texture* sourceTex = nullptr;   // texture pointer
+    Image* sourceImage = nullptr;
 
     // interactivity controls
     int currentTask = 1;        // 1..4

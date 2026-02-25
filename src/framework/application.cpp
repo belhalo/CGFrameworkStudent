@@ -102,10 +102,43 @@ void Application::Init(void)
     quad = new Mesh();
     quad->CreateQuad();
     
-    // texture
+    // load the fruit image
+    Image sourceImage;
+    if (sourceImage.LoadPNG("images/fruits.png") == false) {
+        std::cout << "Image of fruits not found!" << std::endl;
+    }
+
+    // load the texture
     sourceTex = Texture::Get("textures/anna_color_specular.tga");
     if (!sourceTex)
         std::cout << "could not load source texture\n";
+
+    // Lab 4 - render a mesh using gpu
+    // create a single entity
+    Entity* anna = new Entity();
+    anna->mesh = new Mesh();
+    anna->mesh->LoadOBJ("meshes/anna.obj");
+    //anna->texture = Texture::Get("textures/anna_normal.tga");
+    anna->texture = Texture::Get("textures/anna_color_specular.tga");
+    anna->material = Shader::Get("shaders/raster.vs", "shaders/raster.fs");
+
+    // check possible errors
+    if (!anna->mesh || !anna->texture || !anna->material) {
+        std::cout << "error while loading anna's" << std::endl;
+    }
+
+    // make some transformations to ajust anna's position and scale
+    Matrix44 T; Matrix44 Rx; Matrix44 Ry; Matrix44 S;
+    T.MakeTranslationMatrix(0, 0, 0);
+    Rx.MakeRotationMatrix(-PI / 2.0f, Vector3(1, 0, 0));
+    Ry.MakeRotationMatrix(PI / 2.0f, Vector3(1, 0.5, -0.5));
+    S.MakeScaleMatrix(2.5f, 2.5f, 2.5f); 
+
+    // apply those transformation to the model matrix 
+    anna->modelMatrix = T * Ry * Rx* S;
+
+    // sum anna's entity to the array entities to have acces to it our of the init()
+    entities.push_back(anna);
 }
 
 void Application::Render(void)
@@ -145,7 +178,18 @@ void Application::Render(void)
             );
         }
         
-        quad->Render();
+        if (currentTask == 2 || currentTask == 3 || currentTask == 4) {
+            quad->Render();
+        }
+        if (currentTask == 1) {
+            if (!entities.empty()) {
+                // enables the zbuffer to avoid occlusions while rendering
+                glEnable(GL_DEPTH_TEST);
+
+                // render the first entity (anna)
+                entities[0]->Render(cam);
+            }
+        }
 
         shader->Disable();
     }

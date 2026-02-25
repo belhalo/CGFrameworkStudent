@@ -242,6 +242,7 @@ void main()
     {
         // fallback colour
         color = vec3(0.2, 0.0, 0.2);
+
     }
 
     gl_FragColor = vec4(color, 1.0);

@@ -3,7 +3,8 @@
 #include "image.h"
 #include "mesh.h"
 #include "camera.h"
-
+#include "texture.h"
+#include "shader.h"
 // lab2
 // entity holds renderable object state, mesh pointer shared across instances, transform matrices define local to world placement
 
@@ -12,15 +13,6 @@
 
 class Entity {
 private:
-    // lab2
-    // mesh pointer shared across entities, avoids loading same geometry multiple times
-    Mesh* mesh = nullptr;
-
-    // lab2
-    // modelMatrix is current transform used for rendering, baseMatrix stores initial placement used for animation
-    Matrix44 modelMatrix;
-    Matrix44 baseMatrix;
-
     // lab2
     // helper for frustum reject in ndc, reject only when whole triangle is outside same plane
     // prevents partial triangles disappearing when only one vertex is outside
@@ -31,6 +23,20 @@ public:
     // render mode for debugging or final raster, wireframe draws edges, triangles fills pixels
     enum class eRenderMode { WIREFRAME, TRIANGLES };
     eRenderMode renderMode = eRenderMode::TRIANGLES;
+
+    // lab4, those are now public to can be acces from application.cpp and execute the shader
+        // lab2
+        // mesh pointer shared across entities, avoids loading same geometry multiple times
+        Mesh* mesh = nullptr;
+
+        // lab2
+        // modelMatrix is current transform used for rendering, baseMatrix stores initial placement used for animation
+        Matrix44 modelMatrix;
+        Matrix44 baseMatrix;
+
+    // lab 4
+    Shader* material = nullptr;
+    Texture* texture = nullptr;
 
     // lab3
     // feature toggles controlled from application key input
@@ -51,7 +57,7 @@ public:
 
     // lab3
     // texture pointer, can be shared across entities, sampled using uv data in mesh
-    Image* texture = nullptr;
+        //Image* texture = nullptr;
 
     Entity()
     {
@@ -69,6 +75,10 @@ public:
     // cpu render pipeline, local to world, world to ndc, ndc to screen, then wireframe or triangle raster
     // lab3 adds optional zbuffer and texture sampling
     void Render(Image* framebuffer, Camera* camera, FloatImage* zbuffer);
+
+    // lab 4
+    // gpu render pipeline
+    void Entity::Render(Camera* camera);
 
     // lab2
     // update modelMatrix for animated mode, typically rotation over time using totalTime and phase
