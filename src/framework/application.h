@@ -8,6 +8,7 @@
 #include "mesh.h"
 #include "texture.h"
 #include "image.h"
+#include "material.h"
 
 class Application
 {
@@ -43,6 +44,12 @@ public:
 
     // scene entities (GPU mesh rendering)
     std::vector<Entity*> entities;
+
+    // Lab 5 agroupation of data
+    sUniformData uniformData;
+
+    // Lab 5 intensity of ambient light in the scene
+    sLight Ia = { {0,0,0},{0,0,0} };
 
     // keyboard state pointer from SDL
     const Uint8* keystate = nullptr;

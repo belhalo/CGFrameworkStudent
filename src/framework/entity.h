@@ -35,8 +35,11 @@ public:
         Matrix44 baseMatrix;
 
     // lab 4
-    Shader* material = nullptr;
+    Shader* shader = nullptr;
     Texture* texture = nullptr;
+
+    // lab 5
+    Material* material = nullptr;
 
     // lab3
     // feature toggles controlled from application key input

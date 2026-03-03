@@ -1,5 +1,6 @@
 #include "entity.h"
 #include "texture.h"
+#include "material.h"
 #include <algorithm>
 #include <cmath>
 
@@ -47,25 +48,20 @@ void Entity::Update(float dt)
 
 // lab 4
 // render the entity mesh using gpu 
-void Entity::Render(Camera* camera) {
+void Entity::Render(sUniformData& uniformData) {
     // guard against null pointers
-    if (!mesh || !camera || !material) return;
+    if (!mesh || !shader) return;
 
     // computing the transformations 
     Matrix44 Ry; Ry.MakeRotationMatrix(userYaw, Vector3(0, 1, 0));
     Matrix44 Rx; Rx.MakeRotationMatrix(userPitch, Vector3(1, 0, 0));
-    Matrix44 M = modelMatrix * Ry * Rx;
+    this->modelMatrix = this->modelMatrix * Ry * Rx;
+    
+    // update modelmatrix to the current one
+    uniformData.modelMatrix = this->modelMatrix;
 
     // prepare the files to be ready to use by the gpu
-    material->Enable();
-
-    // enter the necessary data to the shader to compute the triangles data (vertices, uv, zbuffer, texels)
-    material->SetMatrix44("u_model", M);
-    material->SetMatrix44("u_viewprojection", camera->viewprojection_matrix);
-
-    if (texture) {
-        material->SetTexture("u_texture", texture);
-    }
+    material->Enable(uniformData);
 
     // gpu renders the entity at the screen
     mesh->Render();

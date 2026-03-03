@@ -94,9 +94,9 @@ void Application::Init(void)
 
     // Lab 4
     // shader (quad)
-    shader = Shader::Get("shaders/quad.vs", "shaders/quad.fs");
+    shader = Shader::Get("shaders/gouraud.vs", "shaders/gouraud.fs");
     if (!shader)
-        std::cout << "Shader could not be loaded: res/shaders/quad.vs + quad.fs\n";
+        std::cout << "Shader could not be loaded: res/shaders/gouraud.vs + gouraud.fs\n";
 
     // fullscreen quad mesh
     quad = new Mesh();
@@ -107,7 +107,6 @@ void Application::Init(void)
     if (!quadTex)
         std::cout << "could not load images/fruits.png\n";
     
-
     // Lab 4 - render a mesh using gpu
     // create a single entity
     Entity* anna = new Entity();
@@ -120,11 +119,11 @@ void Application::Init(void)
         std::cout << "could not load source texture\n";
     anna->texture = annaTex;
     
-    // load material shader
+    // load shader
     sourceMat = Shader::Get("shaders/raster.vs", "shaders/raster.fs");
     if (!sourceMat)
         std::cout << "could not load source shader material\n";
-    anna->material = sourceMat;
+    anna->shader = sourceMat;
 
     // make some transformations to ajust anna's position and scale
     Matrix44 T; Matrix44 Rx; Matrix44 Ry; Matrix44 S;
@@ -138,6 +137,12 @@ void Application::Init(void)
 
     // sum anna's entity to the array entities to have acces to it our of the init()
     entities.push_back(anna);
+
+    // Lab 5 init all the variables of sUniformData
+    uniformData.ambientLightIntensity = { 1.0f, 1.0f, 1.0f };
+    uniformData.modelMatrix = entities[0]->modelMatrix;
+    uniformData.sceneLights = this->Ia;
+    uniformData.viewProjectionMatrix = cam->viewprojection_matrix;
 }
 
 void Application::Render(void)
