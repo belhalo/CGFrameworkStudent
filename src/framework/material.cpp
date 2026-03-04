@@ -18,9 +18,11 @@ void Material::Enable(const sUniformData& uniformData){
 	// set the rest of light attr
 		// we do it separatly because we can get only one of them as the others are null
 		// so we still want put that k that is != null
-	if (Ka) shader->SetVector3("u_Ka", Ka);
-	if (Kd) shader->SetVector3("u_Kd", Kd);
-	if (Ks) shader->SetVector3("u_Ks", Ks);
+	if (Ka.x != 0 && Ka.y != 0 && Ka.z != 0) shader->SetVector3("u_Ka", Ka);
+	if (Kd.x != 0 && Kd.y != 0 && Kd.z != 0) shader->SetVector3("u_Kd", Kd);
+	if (Ks.x != 0 && Ks.y != 0 && Ks.z != 0) shader->SetVector3("u_Ks", Ks);
+
+	shader->SetVector3("u_camera_position", uniformData.cameraEye);
 
 	shader->SetFloat("u_shininess", shininess);
 }

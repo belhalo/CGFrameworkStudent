@@ -1,14 +1,9 @@
 #pragma once
 
 #include "main/includes.h"
-#include "Vector.h"
 #include "shader.h"
+#include "camera.h"
 #include "application.h"
-
-typedef struct sLight {
-	Vector3 position;
-	Vector3 intensity;
-};
 
 // instance in app.h
 typedef struct sUniformData {
@@ -16,7 +11,8 @@ typedef struct sUniformData {
 	Matrix44 viewProjectionMatrix;
 	Vector3 ambientLightIntensity;
 	sLight sceneLights;
-};
+	Vector3 cameraEye;
+}sUniformData;
 
 class Material {
 public:
@@ -30,7 +26,7 @@ public:
 
 	float shininess = 2.0f;
 
-	// controlers of the shader 
-	void Material::Enable(const sUnifromData& uniformData);
+	// controlers of the shader  
+	void Material::Enable(const sUniformData& uniformData);
 	void Material::Disable();
 };

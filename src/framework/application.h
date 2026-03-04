@@ -10,6 +10,12 @@
 #include "image.h"
 #include "material.h"
 
+typedef struct sLight {
+    Vector3 position;
+    Vector3 intensity;
+};
+
+
 class Application
 {
 public:
@@ -46,10 +52,15 @@ public:
     std::vector<Entity*> entities;
 
     // Lab 5 agroupation of data
-    sUniformData uniformData;
+    sUniformData uniformData = { nullptr, 
+        nullptr, 
+        { 1.0f, 1.0f, 1.0f },
+        { {0.0f, 0.0f, 0.0f},  {0.0f, 0.0f, 0.0f}}, 
+        {0.0f, 0.0f, 0.0f}
+    };
 
     // Lab 5 intensity of ambient light in the scene
-    sLight Ia = { {0,0,0},{0,0,0} };
+    sLight Ia = { {0,0,0}, {0,0,0} };
 
     // keyboard state pointer from SDL
     const Uint8* keystate = nullptr;

@@ -55,10 +55,10 @@ void Entity::Render(sUniformData& uniformData) {
     // computing the transformations 
     Matrix44 Ry; Ry.MakeRotationMatrix(userYaw, Vector3(0, 1, 0));
     Matrix44 Rx; Rx.MakeRotationMatrix(userPitch, Vector3(1, 0, 0));
-    this->modelMatrix = this->modelMatrix * Ry * Rx;
+    modelMatrix = modelMatrix * Ry * Rx;
     
     // update modelmatrix to the current one
-    uniformData.modelMatrix = this->modelMatrix;
+    uniformData.modelMatrix = modelMatrix;
 
     // prepare the files to be ready to use by the gpu
     material->Enable(uniformData);

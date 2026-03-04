@@ -5,6 +5,8 @@
 #include "camera.h"
 #include "texture.h"
 #include "shader.h"
+#include "material.h"
+
 // lab2
 // entity holds renderable object state, mesh pointer shared across instances, transform matrices define local to world placement
 
@@ -77,11 +79,14 @@ public:
     // lab2
     // cpu render pipeline, local to world, world to ndc, ndc to screen, then wireframe or triangle raster
     // lab3 adds optional zbuffer and texture sampling
-    void Render(Image* framebuffer, Camera* camera, FloatImage* zbuffer);
+        //void Render(Image* framebuffer, Camera* camera, FloatImage* zbuffer);
 
     // lab 4
     // gpu render pipeline
-    void Render(Camera* camera);
+        //void Render(Camera* camera);
+
+    // lab 5 
+    void Render(sUniformData& uniformData);
 
     // lab2
     // update modelMatrix for animated mode, typically rotation over time using totalTime and phase

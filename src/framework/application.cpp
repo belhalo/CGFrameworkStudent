@@ -143,6 +143,7 @@ void Application::Init(void)
     uniformData.modelMatrix = entities[0]->modelMatrix;
     uniformData.sceneLights = this->Ia;
     uniformData.viewProjectionMatrix = cam->viewprojection_matrix;
+    uniformData.cameraEye = cam->eye;
 }
 
 void Application::Render(void)
@@ -165,7 +166,7 @@ void Application::Render(void)
         glEnable(GL_DEPTH_TEST);
 
         if (!entities.empty())
-            entities[0]->Render(cam);
+            entities[0]->Render(uniformData);
 
         glDisable(GL_DEPTH_TEST);
         return;
