@@ -62,8 +62,8 @@ public:
 
     // shared uniform data for lab 5
     sUniformData uniformData;
-    Vector3 ambientLightIntensity = Vector3(0.15f, 0.15f, 0.15f);
-    sLight mainLight = { Vector3(2.0f, 2.0f, 2.0f), Vector3(8.0f, 8.0f, 8.0f) };
+    Vector3 ambientLightIntensity = Vector3(0.08f, 0.08f, 0.08f);
+    sLight mainLight = { Vector3(2.0f, 2.0f, 2.0f), Vector3(2.0f, 2.0f, 2.0f) };
 
     const Uint8* keystate = nullptr;
 

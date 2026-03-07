@@ -20,11 +20,12 @@ void Material::Enable(const sUniformData& uniformData)
     shader->SetVector3("u_Ks", Ks);
     shader->SetFloat("u_shininess", shininess);
 
+    shader->SetInt("u_use_color_texture", useColorTexture ? 1 : 0);
+    shader->SetInt("u_use_specular_texture", useSpecularTexture ? 1 : 0);
+    shader->SetInt("u_use_normal_texture", useNormalTexture ? 1 : 0);
+
     if (colorTexture)
         shader->SetTexture("u_texture", colorTexture);
-
-    if (specularTexture)
-        shader->SetTexture("u_specular_texture", specularTexture);
 
     if (normalTexture)
         shader->SetTexture("u_normal_texture", normalTexture);

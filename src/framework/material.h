@@ -35,6 +35,10 @@ public:
 
     float shininess = 32.0f;
 
+    bool useColorTexture = false;
+    bool useSpecularTexture = false;
+    bool useNormalTexture = false;
+
     void Enable(const sUniformData& uniformData);
     void Disable();
 };

@@ -135,14 +135,16 @@ void Application::Init(void)
     // lab 5 phong material
     phongMaterial = new Material();
     phongMaterial->shader = Shader::Get("shaders/phong.vs", "shaders/phong.fs");
-    phongMaterial->Ka = Vector3(0.2f, 0.2f, 0.2f);
-    phongMaterial->Kd = Vector3(0.8f, 0.7f, 0.5f);
-    phongMaterial->Ks = Vector3(1.0f, 1.0f, 1.0f);
-    phongMaterial->shininess = 32.0f;
+    phongMaterial->Ka = Vector3(0.12f, 0.12f, 0.12f);
+    phongMaterial->Kd = Vector3(0.75f, 0.75f, 0.75f);
+    phongMaterial->Ks = Vector3(0.25f, 0.25f, 0.25f);
+    phongMaterial->shininess = 24.0f;
+    phongMaterial->colorTexture = annaColorTex;
+    phongMaterial->normalTexture = annaNormalTex;
 
     if (!phongMaterial->shader)
         std::cout << "could not load phong shader\n";
-
+    
     // mesh entity
     Entity* anna = new Entity();
     anna->mesh = new Mesh();
@@ -192,9 +194,17 @@ void Application::Render(void)
         if (!entities.empty())
         {
             if (shadingMode == SHADING_GOURAUD)
+            {
                 entities[0]->material = gouraudMaterial;
+            }
             else
+            {
+                phongMaterial->useColorTexture = useColorTexture;
+                phongMaterial->useSpecularTexture = useSpecularTexture;
+                phongMaterial->useNormalTexture = useNormalTexture;
+
                 entities[0]->material = phongMaterial;
+            }
 
             entities[0]->Render(uniformData);
         }
