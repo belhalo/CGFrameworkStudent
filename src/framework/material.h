@@ -1,32 +1,40 @@
 #pragma once
 
 #include "main/includes.h"
+#include "framework.h"
 #include "shader.h"
-#include "camera.h"
-#include "application.h"
+#include "texture.h"
 
-// instance in app.h
-typedef struct sUniformData {
-	Matrix44 modelMatrix; 
-	Matrix44 viewProjectionMatrix;
-	Vector3 ambientLightIntensity;
-	sLight sceneLights;
-	Vector3 cameraEye;
-}sUniformData;
+struct sLight
+{
+    Vector3 position;
+    Vector3 intensity;
+};
 
-class Material {
+struct sUniformData
+{
+    Matrix44 modelMatrix;
+    Matrix44 viewProjectionMatrix;
+    Vector3 ambientLightIntensity;
+    sLight sceneLight;
+    Vector3 cameraEye;
+};
+
+class Material
+{
 public:
-	Shader* shader = nullptr;
-	Texture* texture = nullptr;
+    Shader* shader = nullptr;
 
-	//  phong illumination model
-	Vector3 Ka = { 1.0f, 1.0f, 1.0f }; // ambient component
-	Vector3  Kd = { 1.0f, 1.0f, 1.0f }; // diffuse component
-	Vector3 Ks = { 1.0f, 1.0f, 1.0f }; // specular component
+    Texture* colorTexture = nullptr;
+    Texture* specularTexture = nullptr;
+    Texture* normalTexture = nullptr;
 
-	float shininess = 2.0f;
+    Vector3 Ka = Vector3(1.0f, 1.0f, 1.0f);
+    Vector3 Kd = Vector3(1.0f, 1.0f, 1.0f);
+    Vector3 Ks = Vector3(1.0f, 1.0f, 1.0f);
 
-	// controlers of the shader  
-	void Material::Enable(const sUniformData& uniformData);
-	void Material::Disable();
+    float shininess = 32.0f;
+
+    void Enable(const sUniformData& uniformData);
+    void Disable();
 };
