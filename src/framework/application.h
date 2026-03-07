@@ -10,83 +10,77 @@
 #include "image.h"
 #include "material.h"
 
-typedef struct sLight {
-    Vector3 position;
-    Vector3 intensity;
-};
-
-
 class Application
 {
 public:
-    // Lab 1 window handle for rendering output
     SDL_Window* window = nullptr;
 
-    // current window size in pixels
     int window_width = 0;
     int window_height = 0;
 
-    // accumulated time (used by shader animations)
-    float time = 0.f;
+    float time = 0.0f;
 
-    // camera
     Camera* cam = nullptr;
 
-    // lab 4
-    Shader* shader = nullptr;       // quad shader
-    Mesh* quad = nullptr;           // fullscreen quad mesh
+    // lab 4 quad path
+    Shader* shader = nullptr;
+    Mesh* quad = nullptr;
+    Texture* quadTex = nullptr;
 
-    Texture* quadTex = nullptr;     // fruits texture for tasks 2.3 and 2.4
-    Texture* annaTex = nullptr;     // obj texture for task 2.5
+    // shared mesh textures
+    Texture* annaColorTex = nullptr;
+    Texture* annaNormalTex = nullptr;
 
-    Shader* sourceMat = nullptr;    // obj material shader
+    // materials
+    Material* rasterMaterial = nullptr;
+    Material* gouraudMaterial = nullptr;
+    Material* phongMaterial = nullptr;
 
-    // interactivity controls
-    int currentTask = 1;        // 1..4
-    int currentSubTask = 1;     // 1..6 (a..f)
+    // lab 4 controls
+    int currentTask = 1;
+    int currentSubTask = 1;
 
-    // Lab 4 / Lab 5 scene switch
+    // scene switch
     bool lab5Scene = false;
 
-    // scene entities (GPU mesh rendering)
-    std::vector<Entity*> entities;
-
-    // Lab 5 agroupation of data
-    sUniformData uniformData = { nullptr, 
-        nullptr, 
-        { 1.0f, 1.0f, 1.0f },
-        { {0.0f, 0.0f, 0.0f},  {0.0f, 0.0f, 0.0f}}, 
-        {0.0f, 0.0f, 0.0f}
+    // lab 5 controls
+    enum ShadingMode
+    {
+        SHADING_GOURAUD,
+        SHADING_PHONG
     };
 
-    // Lab 5 intensity of ambient light in the scene
-    sLight Ia = { {0,0,0}, {0,0,0} };
+    ShadingMode shadingMode = SHADING_GOURAUD;
 
-    // keyboard state pointer from SDL
+    bool useColorTexture = false;
+    bool useSpecularTexture = false;
+    bool useNormalTexture = false;
+    int numLights = 1;
+
+    // scene entities
+    std::vector<Entity*> entities;
+
+    // shared uniform data for lab 5
+    sUniformData uniformData;
+    Vector3 ambientLightIntensity = Vector3(0.08f, 0.08f, 0.08f);
+    sLight mainLight = { Vector3(2.0f, 2.0f, 2.0f), Vector3(2.0f, 2.0f, 2.0f) };
+
     const Uint8* keystate = nullptr;
 
-    // mouse button state mask
     int mouse_state = 0;
-
-    // last mouse position in window space
     Vector2 mouse_position;
-
-    // mouse delta storage
     Vector2 mouse_delta;
 
-    // orbit camera parameters
-    float orbitYaw = 0.f;       // radians
-    float orbitPitch = 0.f;     // radians
-    float orbitDist = 2.2f;     // distance to target
+    float orbitYaw = 0.0f;
+    float orbitPitch = 0.0f;
+    float orbitDist = 2.2f;
 
-    // input sensitivity parameters
     float orbitSpeed = 0.008f;
-    float panSpeed   = 1.0f;
-    float zoomSpeed  = 0.10f;
+    float panSpeed = 1.0f;
+    float zoomSpeed = 0.10f;
 
-    // model rotation values driven by middle drag
-    float modelYaw = 0.f;
-    float modelPitch = 0.f;
+    float modelYaw = 0.0f;
+    float modelPitch = 0.0f;
     float modelRotateSpeed = 0.008f;
 
     Application(const char* caption, int width, int height);
@@ -103,7 +97,6 @@ public:
     void OnWheel(SDL_MouseWheelEvent event);
 
     void OnFileChanged(const char* filename);
-
     void UpdateCameraFromOrbit();
 
     void SetWindowSize(int width, int height)
@@ -112,7 +105,6 @@ public:
         window_width = width;
         window_height = height;
 
-        // keep camera aspect correct 
         if (cam)
         {
             float aspect = (float)window_width / (float)window_height;

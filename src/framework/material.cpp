@@ -1,32 +1,38 @@
 #include "material.h"
 
-// upload all uniforms to the gpu!
-void Material::Enable(const sUniformData& uniformData){
-	if (!shader) return;
+void Material::Enable(const sUniformData& uniformData)
+{
+    if (!shader)
+        return;
 
-	this->shader->Enable();
+    shader->Enable();
 
-	// set all the attr of sUniformData
-	shader->SetMatrix44("u_model", uniformData.modelMatrix);
-	shader->SetMatrix44("u_viewProjection", uniformData.viewProjectionMatrix);
+    shader->SetMatrix44("u_model", uniformData.modelMatrix);
+    shader->SetMatrix44("u_viewprojection", uniformData.viewProjectionMatrix);
 
-	shader->SetVector3("u_ambientLight", uniformData.ambientLightIntensity);
+    shader->SetVector3("u_ambientLight", uniformData.ambientLightIntensity);
+    shader->SetVector3("u_sceneLight_position", uniformData.sceneLight.position);
+    shader->SetVector3("u_sceneLight_intensity", uniformData.sceneLight.intensity);
+    shader->SetVector3("u_camera_position", uniformData.cameraEye);
 
-	shader->SetVector3("u_sceneLight_position", uniformData.sceneLights.position);
-	shader->SetVector3("u_sceneLight_intensity", uniformData.sceneLights.intensity);
+    shader->SetVector3("u_Ka", Ka);
+    shader->SetVector3("u_Kd", Kd);
+    shader->SetVector3("u_Ks", Ks);
+    shader->SetFloat("u_shininess", shininess);
 
-	// set the rest of light attr
-		// we do it separatly because we can get only one of them as the others are null
-		// so we still want put that k that is != null
-	if (Ka.x != 0 && Ka.y != 0 && Ka.z != 0) shader->SetVector3("u_Ka", Ka);
-	if (Kd.x != 0 && Kd.y != 0 && Kd.z != 0) shader->SetVector3("u_Kd", Kd);
-	if (Ks.x != 0 && Ks.y != 0 && Ks.z != 0) shader->SetVector3("u_Ks", Ks);
+    shader->SetInt("u_use_color_texture", useColorTexture ? 1 : 0);
+    shader->SetInt("u_use_specular_texture", useSpecularTexture ? 1 : 0);
+    shader->SetInt("u_use_normal_texture", useNormalTexture ? 1 : 0);
 
-	shader->SetVector3("u_camera_position", uniformData.cameraEye);
+    if (colorTexture)
+        shader->SetTexture("u_texture", colorTexture);
 
-	shader->SetFloat("u_shininess", shininess);
+    if (normalTexture)
+        shader->SetTexture("u_normal_texture", normalTexture);
 }
 
-void Material::Disable() {
-	this->shader->Disable();
+void Material::Disable()
+{
+    if (shader)
+        shader->Disable();
 }
