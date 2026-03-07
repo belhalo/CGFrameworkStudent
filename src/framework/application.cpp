@@ -132,6 +132,17 @@ void Application::Init(void)
     if (!gouraudMaterial->shader)
         std::cout << "could not load gouraud shader\n";
 
+    // lab 5 phong material
+    phongMaterial = new Material();
+    phongMaterial->shader = Shader::Get("shaders/phong.vs", "shaders/phong.fs");
+    phongMaterial->Ka = Vector3(0.2f, 0.2f, 0.2f);
+    phongMaterial->Kd = Vector3(0.8f, 0.7f, 0.5f);
+    phongMaterial->Ks = Vector3(1.0f, 1.0f, 1.0f);
+    phongMaterial->shininess = 32.0f;
+
+    if (!phongMaterial->shader)
+        std::cout << "could not load phong shader\n";
+
     // mesh entity
     Entity* anna = new Entity();
     anna->mesh = new Mesh();
@@ -146,6 +157,7 @@ void Application::Init(void)
     Rx.MakeRotationMatrix(-PI / 2.0f, Vector3(1, 0, 0));
     Ry.MakeRotationMatrix(PI / 2.0f, Vector3(1, 0.5f, -0.5f));
     S.MakeScaleMatrix(2.5f, 2.5f, 2.5f);
+
     anna->modelMatrix = T * Ry * Rx * S;
     anna->baseMatrix = anna->modelMatrix;
 
@@ -181,10 +193,8 @@ void Application::Render(void)
         {
             if (shadingMode == SHADING_GOURAUD)
                 entities[0]->material = gouraudMaterial;
-            else if (phongMaterial)
-                entities[0]->material = phongMaterial;
             else
-                entities[0]->material = gouraudMaterial;
+                entities[0]->material = phongMaterial;
 
             entities[0]->Render(uniformData);
         }
@@ -193,7 +203,6 @@ void Application::Render(void)
         return;
     }
 
-    // lab 4 task 2.5
     if (currentTask == 4)
     {
         glEnable(GL_DEPTH_TEST);
@@ -213,7 +222,6 @@ void Application::Render(void)
         return;
     }
 
-    // lab 4 quad tasks
     glDisable(GL_DEPTH_TEST);
 
     if (shader && quad)

@@ -29,7 +29,6 @@ void Entity::Render(sUniformData& uniformData)
     Rx.MakeRotationMatrix(userPitch, Vector3(1, 0, 0));
 
     Matrix44 M = modelMatrix * Ry * Rx;
-
     uniformData.modelMatrix = M;
 
     material->Enable(uniformData);
