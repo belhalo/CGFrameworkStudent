@@ -33,7 +33,7 @@ void main()
         normalTex = normalTex * 2.0 - 1.0;
 
         vec3 mappedNormal = normalize((u_model * vec4(normalTex, 0.0)).xyz);
-        N = normalize(mix(N, mappedNormal, 0.45));
+        N = normalize(mix(N, mappedNormal, 0.55));
     }
 
     vec3 Ka = u_Ka;
