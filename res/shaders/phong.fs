@@ -11,11 +11,13 @@ uniform vec3 u_Ks;
 uniform float u_shininess;
 
 uniform sampler2D u_texture;
+uniform sampler2D u_specular_texture;
 uniform sampler2D u_normal_texture;
 
 uniform int u_use_color_texture;
 uniform int u_use_specular_texture;
 uniform int u_use_normal_texture;
+uniform int u_use_ambient;
 
 varying vec2 v_uv;
 varying vec3 v_world_position;
@@ -31,8 +33,7 @@ void main()
         normalTex = normalTex * 2.0 - 1.0;
 
         vec3 mappedNormal = normalize((u_model * vec4(normalTex, 0.0)).xyz);
-
-        N = normalize(mix(N, mappedNormal, 0.5));
+        N = normalize(mix(N, mappedNormal, 0.45));
     }
 
     vec3 Ka = u_Ka;
@@ -49,7 +50,8 @@ void main()
 
     if (u_use_specular_texture == 1)
     {
-        Ks = vec3(tex.a) * 0.35;
+        vec3 specTex = texture2D(u_specular_texture, v_uv).aaa;
+        Ks = 1.8 * specTex;
     }
 
     vec3 L = normalize(u_sceneLight_position - v_world_position);
@@ -62,11 +64,15 @@ void main()
     if (dotLN > 0.0)
         dotRV = max(dot(R, V), 0.0);
 
-    vec3 Ia = Ka * u_ambientLight;
+    vec3 Ia = vec3(0.0);
+    if (u_use_ambient == 1)
+        Ia = Ka * u_ambientLight;
+
     vec3 Id = Kd * dotLN * u_sceneLight_intensity;
-    vec3 Is = Ks * pow(dotRV, u_shininess) * u_sceneLight_intensity;
+    vec3 Is = 0.35 * Ks * pow(dotRV, u_shininess) * u_sceneLight_intensity * dotLN;
 
     vec3 finalColor = Ia + Id + Is;
+    finalColor = clamp(finalColor, 0.0, 1.0);
 
     gl_FragColor = vec4(finalColor, 1.0);
 }

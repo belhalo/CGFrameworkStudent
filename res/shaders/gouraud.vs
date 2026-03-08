@@ -11,10 +11,8 @@ uniform vec3 u_Kd;
 uniform vec3 u_Ks;
 uniform float u_shininess;
 
-varying vec2 v_uv;
 varying vec3 v_light_color;
-varying vec3 v_world_position;
-varying vec3 v_world_normal;
+varying vec2 v_uv;
 
 void main()
 {
@@ -23,26 +21,21 @@ void main()
     vec3 world_position = (u_model * vec4(gl_Vertex.xyz, 1.0)).xyz;
     vec3 world_normal = normalize((u_model * vec4(gl_Normal.xyz, 0.0)).xyz);
 
-    vec3 lightVec = u_sceneLight_position - world_position;
-    float d = length(lightVec);
-    vec3 L = normalize(lightVec);
-
+    vec3 L = normalize(u_sceneLight_position - world_position);
     vec3 V = normalize(u_camera_position - world_position);
     vec3 R = reflect(-L, world_normal);
 
     float dotLN = max(dot(world_normal, L), 0.0);
-    float dotRV = max(dot(R, V), 0.0);
-    float spec = (dotLN > 0.0) ? pow(dotRV, u_shininess) : 0.0;
+    float dotRV = 0.0;
 
-    float attenuation = 1.0 / (d * d);
+    if (dotLN > 0.0)
+        dotRV = max(dot(R, V), 0.0);
 
     vec3 Ia = u_Ka * u_ambientLight;
-    vec3 Id = u_Kd * dotLN * u_sceneLight_intensity * attenuation;
-    vec3 Is = u_Ks * spec * u_sceneLight_intensity * attenuation;
+    vec3 Id = u_Kd * dotLN * u_sceneLight_intensity;
+    vec3 Is = u_Ks * pow(dotRV, u_shininess) * u_sceneLight_intensity;
 
     v_light_color = Ia + Id + Is;
-    v_world_position = world_position;
-    v_world_normal = world_normal;
 
     gl_Position = u_viewprojection * vec4(world_position, 1.0);
 }

@@ -23,6 +23,7 @@ void Material::Enable(const sUniformData& uniformData)
     shader->SetInt("u_use_color_texture", useColorTexture ? 1 : 0);
     shader->SetInt("u_use_specular_texture", useSpecularTexture ? 1 : 0);
     shader->SetInt("u_use_normal_texture", useNormalTexture ? 1 : 0);
+    shader->SetInt("u_use_ambient", uniformData.useAmbient);
 
     if (colorTexture)
         shader->SetTexture("u_texture", colorTexture);
