@@ -135,10 +135,10 @@ void Application::Init(void)
     // lab 5 phong material
     phongMaterial = new Material();
     phongMaterial->shader = Shader::Get("shaders/phong.vs", "shaders/phong.fs");
-    phongMaterial->Ka = Vector3(0.12f, 0.12f, 0.12f);
-    phongMaterial->Kd = Vector3(0.75f, 0.75f, 0.75f);
-    phongMaterial->Ks = Vector3(0.25f, 0.25f, 0.25f);
-    phongMaterial->shininess = 24.0f;
+    phongMaterial->Ka = Vector3(0.06f, 0.06f, 0.06f);
+    phongMaterial->Kd = Vector3(0.55f, 0.55f, 0.55f);
+    phongMaterial->Ks = Vector3(0.40f, 0.40f, 0.40f);
+    phongMaterial->shininess = 128.0f;
     phongMaterial->colorTexture = annaColorTex;
     phongMaterial->normalTexture = annaNormalTex;
 
@@ -189,24 +189,54 @@ void Application::Render(void)
         uniformData.viewProjectionMatrix = cam->viewprojection_matrix;
         uniformData.cameraEye = cam->eye;
         uniformData.ambientLightIntensity = ambientLightIntensity;
-        uniformData.sceneLight = mainLight;
 
         if (!entities.empty())
         {
             if (shadingMode == SHADING_GOURAUD)
             {
+                uniformData.sceneLight = mainLight;
+                uniformData.useAmbient = 1;
+
                 entities[0]->material = gouraudMaterial;
+                entities[0]->Render(uniformData);
             }
             else
             {
                 phongMaterial->useColorTexture = useColorTexture;
                 phongMaterial->useSpecularTexture = useSpecularTexture;
                 phongMaterial->useNormalTexture = useNormalTexture;
-
                 entities[0]->material = phongMaterial;
-            }
 
-            entities[0]->Render(uniformData);
+                // first pass, main light plus ambient
+                uniformData.sceneLight = mainLight;
+                uniformData.useAmbient = 1;
+
+                glDisable(GL_BLEND);
+                glDepthMask(GL_TRUE);
+                entities[0]->Render(uniformData);
+
+                // second pass, second light only, additive
+                if (numLights >= 2)
+                {
+                    sLight secondLight;
+                    secondLight.position = Vector3(-2.0f, 2.0f, 2.0f);
+                    secondLight.intensity = Vector3(0.0f, 0.35f, 0.0f);
+                    uniformData.sceneLight = secondLight;
+                    uniformData.useAmbient = 0;
+
+                    glEnable(GL_BLEND);
+                    glBlendFunc(GL_ONE, GL_ONE);
+
+                    glDepthMask(GL_FALSE);
+                    glDepthFunc(GL_EQUAL);
+
+                    entities[0]->Render(uniformData);
+
+                    glDepthMask(GL_TRUE);
+                    glDepthFunc(GL_LESS);
+                    glDisable(GL_BLEND);
+                }
+            }
         }
 
         glDisable(GL_DEPTH_TEST);

@@ -18,6 +18,7 @@ struct sUniformData
     Vector3 ambientLightIntensity;
     sLight sceneLight;
     Vector3 cameraEye;
+    int useAmbient;
 };
 
 class Material
@@ -31,9 +32,9 @@ public:
 
     Vector3 Ka = Vector3(1.0f, 1.0f, 1.0f);
     Vector3 Kd = Vector3(1.0f, 1.0f, 1.0f);
-    Vector3 Ks = Vector3(1.0f, 1.0f, 1.0f);
+    Vector3 Ks = Vector3(0.2f, 0.2f, 0.2f);
 
-    float shininess = 32.0f;
+    float shininess = 64.0f;
 
     bool useColorTexture = false;
     bool useSpecularTexture = false;
